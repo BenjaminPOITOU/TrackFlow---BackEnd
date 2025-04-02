@@ -3,43 +3,34 @@ package com.eql.cda.track.flow.dto.compositionDto;
 import com.eql.cda.track.flow.entity.CompositionStatus;
 import com.eql.cda.track.flow.validation.Constants;
 import jakarta.persistence.Column;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.util.List;
 
-@NotNull(message = "Compositon creation cannot be null")
-public class CompositionCreateDto {
+public class CompositionUpdateDto {
 
     @Size(max = Constants.COMPOSITION_TITLE_MAX_LENGTH, message = Constants.COMPOSITION_TITLE_MAX_LENGTH_MSG)
     @Column(length = Constants.COMPOSITION_TITLE_MAX_LENGTH)
-    @NotNull(message = "Composition title cannot be null")
-    @NotBlank(message = "Composition title cannot be blank")
     private String title;
 
     @Size(max = Constants.COMPOSITION_DESC_MAX_LENGTH, message = Constants.COMPOSITION_DESC_MAX_LENGTH_MSG)
     @Column(length = Constants.COMPOSITION_DESC_MAX_LENGTH)
-    @NotNull(message = "Composition Status cannot be null")
-    @NotBlank(message = "Composition Status cannot be blank")
     private CompositionStatus compositionStatus;
 
-    @NotNull(message = "Composition subgender cannot be null")
-    @NotBlank(message = "Composition subgender cannot be blank")
     private List<String> subGender;
-
     private String description;
     private String illustration;
 
-    public CompositionCreateDto() {
+    public CompositionUpdateDto() {
     }
-    public CompositionCreateDto(String title, CompositionStatus compositionStatus, List<String> subGender,  String description, String illustration) {
+    public CompositionUpdateDto(String title, CompositionStatus compositionStatus, List<String> subGender, String description, String illustration) {
         this.title = title;
         this.compositionStatus = compositionStatus;
         this.subGender = subGender;
         this.description = description;
         this.illustration = illustration;
     }
+
 
     public String getTitle() {
         return title;
@@ -68,7 +59,6 @@ public class CompositionCreateDto {
     public void setDescription(String description) {
         this.description = description;
     }
-
 
     public String getIllustration() {
         return illustration;

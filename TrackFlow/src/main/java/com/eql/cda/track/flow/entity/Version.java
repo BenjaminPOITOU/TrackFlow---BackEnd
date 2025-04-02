@@ -52,8 +52,6 @@ public class Version {
     @OneToMany(mappedBy = "version", cascade = CascadeType.ALL)
     private List<Annotation> annotations;
 
-    @OneToMany(mappedBy = "version", cascade = CascadeType.ALL)
-    private List<InstrumentChosenByUser> instrumentChosenByUserList;
 
     @OneToMany(mappedBy = "version", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Access> accesses;
@@ -71,7 +69,7 @@ public class Version {
     public Version() {
     }
 
-    public Version(Long id, String title, Long versionNumber, String description, String audioFileUrl, String metaData, Date creationDate, Date supressionDate, Date definitivSupressionDate, Long parentVersionId, Long mergedSourceId, Branch branch, List<Annotation> annotations, List<InstrumentChosenByUser> instrumentChosenByUserList, Set<Access> accesses, List<VersionInstrumentPreDefined> versionInstrumentPreDefinedList) {
+    public Version(Long id, String title, Long versionNumber, String description, String audioFileUrl, String metaData, Date creationDate, Date supressionDate, Date definitivSupressionDate, Long parentVersionId, Long mergedSourceId, Branch branch, List<Annotation> annotations, Set<Access> accesses, List<VersionInstrumentPreDefined> versionInstrumentPreDefinedList) {
         this.id = id;
         this.title = title;
         this.versionNumber = versionNumber;
@@ -85,7 +83,6 @@ public class Version {
         this.mergedSourceId = mergedSourceId;
         this.branch = branch;
         this.annotations = annotations;
-        this.instrumentChosenByUserList = instrumentChosenByUserList;
         this.accesses = accesses;
         this.versionInstrumentPreDefinedList = versionInstrumentPreDefinedList;
     }
@@ -181,12 +178,6 @@ public class Version {
         this.annotations = annotations;
     }
 
-    public List<InstrumentChosenByUser> getInstrumentChosenByUserList() {
-        return instrumentChosenByUserList;
-    }
-    public void setInstrumentChosenByUserList(List<InstrumentChosenByUser> instrumentChosenByUserList) {
-        this.instrumentChosenByUserList = instrumentChosenByUserList;
-    }
 
     public List<VersionInstrumentPreDefined> getInstrumentPreDefinedList() {
         return versionInstrumentPreDefinedList;

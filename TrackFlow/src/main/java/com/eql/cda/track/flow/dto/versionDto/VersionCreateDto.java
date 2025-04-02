@@ -10,17 +10,15 @@ public class VersionCreateDto {
     private Long branchId;
     private String title;
     private String description;
-    private Set<String> instrumentsChosenByUser; // Idem
     private Set<VersionInstrumentPreDefined> versionInstrumentsPreDefinedSet; // Idem
 
 
     public VersionCreateDto() {
     }
-    public VersionCreateDto(Long branchId, String title, String description, Set<String> instrumentsChosenByUser, Set<VersionInstrumentPreDefined> versionInstrumentsPreDefinedSet) {
+    public VersionCreateDto(Long branchId, String title, String description, Set<VersionInstrumentPreDefined> versionInstrumentsPreDefinedSet) {
         this.branchId = branchId;
         this.title = title;
         this.description = description;
-        this.instrumentsChosenByUser = instrumentsChosenByUser;
         this.versionInstrumentsPreDefinedSet = versionInstrumentsPreDefinedSet;
     }
 
@@ -32,9 +30,6 @@ public class VersionCreateDto {
     }
     public String getDescription() {
         return description;
-    }
-    public Set<String> getInstrumentsChosenByUser() {
-        return instrumentsChosenByUser;
     }
     public Set<VersionInstrumentPreDefined> getVersionInstrumentsPreDefinedSet() {
         return versionInstrumentsPreDefinedSet;
@@ -48,5 +43,8 @@ public class VersionCreateDto {
     }
     public void setDescription(String description) {
         this.description = description;
+    }
+    public void setVersionInstrumentsPreDefinedSet(Set<VersionInstrumentPreDefined> versionInstrumentsPreDefinedSet) {
+        this.versionInstrumentsPreDefinedSet = versionInstrumentsPreDefinedSet;
     }
 }

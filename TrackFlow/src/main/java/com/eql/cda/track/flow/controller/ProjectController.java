@@ -2,6 +2,7 @@ package com.eql.cda.track.flow.controller;
 
 
 import com.eql.cda.track.flow.dto.projectDto.ProjectCreateDto;
+import com.eql.cda.track.flow.dto.projectDto.ProjectSummaryDto;
 import com.eql.cda.track.flow.dto.projectDto.ProjectUpdateDto;
 import com.eql.cda.track.flow.dto.projectDto.ProjectViewDto;
 import com.eql.cda.track.flow.service.ProjectService;
@@ -62,6 +63,40 @@ public class ProjectController {
         // Catch d'autres exceptions métier spécifiques si nécessaire
     }
 
+    @GetMapping
+    public ResponseEntity<List<ProjectViewDto>> getAllUserProjects(@PathVariable Long userId) {
+        try {
+            // -----=====>>>>>> SÉCURITÉ CRITIQUE <<<<<<=====-----
+            // Il est ABSOLUMENT INDISPENSABLE de vérifier ici que l'utilisateur
+            // authentifié (celui qui fait l'appel API) a le droit de voir les projets
+            // de l'{userId} spécifié dans l'URL.
+            // Typiquement, un utilisateur ne devrait pouvoir accéder qu'à ses propres projets,
+            // sauf s'il est administrateur.
+            // Exemple de vérification (simpliste, à adapter avec Spring Security):
+            // String authenticatedUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+            // User authenticatedUser = userRepository.findByLogin(authenticatedUsername); // Ou via un service
+            // if (!authenticatedUser.getId().equals(userId) && !/* estAdmin(authenticatedUser) */) {
+            //    throw new AccessDeniedException("User not authorized to access projects for user ID: " + userId);
+            // }
+            // -----=====>>>>>> FIN SÉCURITÉ CRITIQUE <<<<<<=====-----
+
+
+            List<ProjectViewDto> projects = projectService.getAllProjects(userId);
+            return ResponseEntity.ok(projects);
+        } catch (EntityNotFoundException e) {
+            // Si l'utilisateur {userId} lui-même n'est pas trouvé par le service
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
+        } catch (IllegalArgumentException e) {
+            // Si l'ID utilisateur est invalide (ex: null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
+            // } catch (AccessDeniedException e) { // Si vous implémentez la vérification de sécurité
+            //     throw new ResponseStatusException(HttpStatus.FORBIDDEN, e.getMessage(), e);
+        } catch (Exception e) {
+            // Gérer les autres erreurs inattendues
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving user projects", e);
+        }
+    }
+
     @GetMapping("/project/{id}")
     public ResponseEntity<ProjectViewDto> getProjectById(@PathVariable Long id) {
         try {
@@ -76,10 +111,14 @@ public class ProjectController {
     }
 
     @GetMapping("/recent")
-    public ResponseEntity<List<ProjectViewDto>> getRecentProjects() {
-        List<ProjectViewDto> recentProjects = projectService.getRecentProjects();
-        return ResponseEntity.ok(recentProjects);
-        // Aucune exception spécifique attendue ici normalement, sauf erreur serveur.
+    public ResponseEntity<List<ProjectSummaryDto>> getRecentProjects() {
+        try {
+            List<ProjectSummaryDto> recentProjects = projectService.getRecentProjects(); // Appel inchangé, mais le retour est différent
+            return ResponseEntity.ok(recentProjects);
+        } catch (Exception e) {
+            // Log l'erreur de préférence
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving recent projects summary", e);
+        }
     }
 
 
