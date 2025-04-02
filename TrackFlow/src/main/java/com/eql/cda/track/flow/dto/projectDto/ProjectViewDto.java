@@ -1,29 +1,26 @@
 package com.eql.cda.track.flow.dto.projectDto;
 
-import com.eql.cda.track.flow.entity.Composition;
 import com.eql.cda.track.flow.entity.ProjectCommercialStatus;
-import com.eql.cda.track.flow.entity.ProjectMusicalGenderAdded;
 import com.eql.cda.track.flow.entity.ProjectMusicalGenderPreDefined;
 import com.eql.cda.track.flow.entity.ProjectPurpose;
 import com.eql.cda.track.flow.entity.ProjectStatus;
-import com.eql.cda.track.flow.entity.ProjectTag;
 import com.eql.cda.track.flow.entity.ProjectType;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 
 public class ProjectViewDto {
 
+    private Long id;
     private String title;
-    private String description; // Optionnel
+    private String description;
     private String illustration;
     private ProjectStatus projectStatus;
     private ProjectType projectType;
     private ProjectCommercialStatus projectCommercialStatus;
     private Set<ProjectPurpose> projectPurposes;
     private Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined;
-    private Set<ProjectMusicalGenderAdded> projectMusicalGenderAddedSet;
-    private Set<ProjectTag> projectTagSet;
     private LocalDateTime creationDate;
     private LocalDateTime updateDate;
     private Integer compositionsTotal;
@@ -33,8 +30,8 @@ public class ProjectViewDto {
     public ProjectViewDto() {
     }
 
-
-    public ProjectViewDto(String title, String description, String illustration, ProjectStatus projectStatus, ProjectType projectType, ProjectCommercialStatus projectCommercialStatus, Set<ProjectPurpose> projectPurposes, Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined, Set<ProjectMusicalGenderAdded> projectMusicalGenderAddedSet, Set<ProjectTag> projectTagSet, LocalDateTime creationDate, LocalDateTime updateDate, Integer compositionsTotal) {
+    public ProjectViewDto(Long id, String title, String description, String illustration, ProjectStatus projectStatus, ProjectType projectType, ProjectCommercialStatus projectCommercialStatus, Set<ProjectPurpose> projectPurposes, Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined, LocalDateTime creationDate, LocalDateTime updateDate, Integer compositionsTotal) {
+        this.id = id;
         this.title = title;
         this.description = description;
         this.illustration = illustration;
@@ -43,76 +40,104 @@ public class ProjectViewDto {
         this.projectCommercialStatus = projectCommercialStatus;
         this.projectPurposes = projectPurposes;
         this.projectMusicalGendersPreDefined = projectMusicalGendersPreDefined;
-        this.projectMusicalGenderAddedSet = projectMusicalGenderAddedSet;
-        this.projectTagSet = projectTagSet;
         this.creationDate = creationDate;
         this.updateDate = updateDate;
         this.compositionsTotal = compositionsTotal;
     }
 
-    // Getters
-    public String getTitle() { return title; }
-    public String getDescription() { return description; }
-    public String getIllustrationURL() { return illustration; }
-    public ProjectStatus getProjectStatus() { return projectStatus; }
-    public ProjectType getProjectType() { return projectType; }
-    public ProjectCommercialStatus getProjectCommercialStatus() { return projectCommercialStatus; }
-    public Set<ProjectMusicalGenderPreDefined> getProjectMusicalGendersPreDefined() {
-        return projectMusicalGendersPreDefined;
+
+    public Long getId() {
+        return id;
     }
-    public Set<ProjectPurpose> getProjectPurposes() {
-        return projectPurposes;
+
+    public void setId(Long id) {
+        this.id = id;
     }
-    public Set<ProjectMusicalGenderAdded> getProjectMusicalGenderAddedSet() {
-        return projectMusicalGenderAddedSet;
+
+    public String getTitle() {
+        return title;
     }
-    public Set<ProjectTag> getProjectTagSet() {
-        return projectTagSet;
+
+    public void setTitle(String title) {
+        this.title = title;
     }
-    public LocalDateTime getCreationDate() {
-        return creationDate;
+
+    public String getDescription() {
+        return description;
     }
-    public LocalDateTime getUpdateDate() {
-        return updateDate;
+
+    public void setDescription(String description) {
+        this.description = description;
     }
+
     public String getIllustration() {
         return illustration;
     }
+
+    public void setIllustration(String illustration) {
+        this.illustration = illustration;
+    }
+
+    public ProjectStatus getProjectStatus() {
+        return projectStatus;
+    }
+
+    public void setProjectStatus(ProjectStatus projectStatus) {
+        this.projectStatus = projectStatus;
+    }
+
+    public ProjectType getProjectType() {
+        return projectType;
+    }
+
+    public void setProjectType(ProjectType projectType) {
+        this.projectType = projectType;
+    }
+
+    public ProjectCommercialStatus getProjectCommercialStatus() {
+        return projectCommercialStatus;
+    }
+
+    public void setProjectCommercialStatus(ProjectCommercialStatus projectCommercialStatus) {
+        this.projectCommercialStatus = projectCommercialStatus;
+    }
+
+    public Set<ProjectPurpose> getProjectPurposes() {
+        return projectPurposes;
+    }
+
+    public void setProjectPurposes(Set<ProjectPurpose> projectPurposes) {
+        this.projectPurposes = projectPurposes;
+    }
+
+    public Set<ProjectMusicalGenderPreDefined> getProjectMusicalGendersPreDefined() {
+        return projectMusicalGendersPreDefined;
+    }
+
+    public void setProjectMusicalGendersPreDefined(Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined) {
+        this.projectMusicalGendersPreDefined = projectMusicalGendersPreDefined;
+    }
+
+    public LocalDateTime getCreationDate() {
+        return creationDate;
+    }
+
+    public void setCreationDate(LocalDateTime creationDate) {
+        this.creationDate = creationDate;
+    }
+
+    public LocalDateTime getUpdateDate() {
+        return updateDate;
+    }
+
+    public void setUpdateDate(LocalDateTime updateDate) {
+        this.updateDate = updateDate;
+    }
+
     public Integer getCompositionsTotal() {
         return compositionsTotal;
     }
 
-    // Setters
-    public void setTitle(String title) { this.title = title; }
-    public void setDescription(String description) { this.description = description; }
-    public void setIllustration(String illustration) { this.illustration = illustration; }
-    public void setProjectStatus(ProjectStatus projectStatus) {
-        this.projectStatus = projectStatus;
-    }
-    public void setProjectType(ProjectType projectType) {
-        this.projectType = projectType;
-    }
-    public void setProjectCommercialStatus(ProjectCommercialStatus projectCommercialStatus) {
-        this.projectCommercialStatus = projectCommercialStatus;
-    }
-    public void setProjectPurposes(Set<ProjectPurpose> projectPurposes) {
-        this.projectPurposes = projectPurposes;
-    }
-    public void setProjectMusicalGendersPreDefined(Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined) {
-        this.projectMusicalGendersPreDefined = projectMusicalGendersPreDefined;
-    }
-    public void setProjectMusicalGenderAddedSet(Set<ProjectMusicalGenderAdded> projectMusicalGenderAddedSet) {
-        this.projectMusicalGenderAddedSet = projectMusicalGenderAddedSet;
-    }
-    public void setProjectTagSet(Set<ProjectTag> projectTagSet) {
-        this.projectTagSet = projectTagSet;
-    }
-    public void setCreationDate(LocalDateTime creationDate) {
-        this.creationDate = creationDate;
-    }
-    public void setUpdateDate(LocalDateTime updateDate) {
-        this.updateDate = updateDate;
-    }
     public void setCompositionsTotal(Integer compositionsTotal) {
         this.compositionsTotal = compositionsTotal;
     }

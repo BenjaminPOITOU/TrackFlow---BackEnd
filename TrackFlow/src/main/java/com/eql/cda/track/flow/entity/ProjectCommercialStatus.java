@@ -17,7 +17,11 @@ public enum ProjectCommercialStatus {
     NONCOMMERCIAL("Non commercial"),
     LIMITEE("Licence limitée"),
     UNIQUE("Édition unique"),
-    PARTAGE("Partage autorisé");
+    PARTAGE("Partage autorisé"),
+    STREAMING("Streaming"),
+    COMMANDE("Commande"),
+    PERSONNEL("Personnel"),
+    LABEL("Label");
 
     private final String label;
 

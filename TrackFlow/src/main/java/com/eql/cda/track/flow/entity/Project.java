@@ -1,6 +1,8 @@
 package com.eql.cda.track.flow.entity;
 
 import com.eql.cda.track.flow.validation.Constants;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
@@ -23,6 +25,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
+
 
 import java.util.HashSet;
 import java.util.Set;
@@ -49,27 +52,30 @@ public class Project {
     private Integer projectOrder;
 
     @CreatedDate
+    @Column(nullable = false, updatable = false) // Bonnes pratiques audit
     private LocalDateTime createdDate;
 
-
     @LastModifiedDate
+    @Column(nullable = false) // Bonnes pratiques audit
     private LocalDateTime lastUpdateDate;
 
     private LocalDateTime supressionDate;
     private LocalDateTime definitivSupressionDate;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    @JsonBackReference
     private User user;
 
-    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL)
-    private Set<ProjectTag> projectTags;
+    @ElementCollection(targetClass = ProjectMusicalGenderPreDefined.class, fetch = FetchType.LAZY)
+    @CollectionTable(name="project_musical_gender_predefined", joinColumns = @JoinColumn(name = "project_id"))
+    @Enumerated(EnumType.STRING)
+    @Column(name="gender")
+    private Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined = new HashSet<>(); // <-- ****** TYPE CHANGÉ EN Set ******
 
-    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL)
-    private Set<ProjectMusicalGenderAdded> projectMusicalGenderAddedSet;
-
-    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL)
-    private Set<Composition> compositions=new HashSet<>();
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JsonManagedReference
+    private Set<Composition> compositions = new HashSet<>(); // <-- ****** TYPE CHANGÉ EN Set ******
 
 
     @Enumerated(EnumType.STRING)
@@ -84,16 +90,12 @@ public class Project {
     @Column(name = "project_commercial_status")
     private ProjectCommercialStatus projectCommercialStatus;
 
-    @ElementCollection(targetClass = ProjectPurpose.class, fetch = FetchType.EAGER)
+    @ElementCollection(targetClass = ProjectPurpose.class, fetch = FetchType.LAZY)
     @CollectionTable(name="project_purpose", joinColumns =  @JoinColumn(name = "project_id"))
     @Enumerated(EnumType.STRING)
-    private Set<ProjectPurpose> projectPurposes;
-
-    @ElementCollection(targetClass = ProjectMusicalGenderPreDefined.class, fetch = FetchType.EAGER)
-    @CollectionTable(name="project_musical_gender_predefined", joinColumns =  @JoinColumn(name = "project_id"))
-    @Enumerated(EnumType.STRING)
-    private Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined;
-
+    @Column(name="purpose")
+    // Préférer Set pour les collections non ordonnées et éviter les doublons
+    private Set<ProjectPurpose> projectPurposes = new HashSet<>();
 
 
 
@@ -102,26 +104,24 @@ public class Project {
     public Project() {
     }
 
-    public Project(Long id, String title, String description, String illustration, Boolean isArchived, Integer projectOrder, LocalDateTime creationDate, LocalDateTime lastUpdateDate, LocalDateTime supressionDate, LocalDateTime definitivSupressionDate, User user, Set<ProjectTag> projectTags, Set<ProjectMusicalGenderAdded> projectMusicalGenderAddedSet, Set<Composition> compositions, ProjectStatus projectStatus, ProjectType projectType, ProjectCommercialStatus projectCommercialStatus, Set<ProjectPurpose> projectPurposes, Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined) {
+    public Project(Long id, String title, String description, String illustration, boolean isArchived, Integer projectOrder, LocalDateTime createdDate, LocalDateTime lastUpdateDate, LocalDateTime supressionDate, LocalDateTime definitivSupressionDate, User user, Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined, Set<Composition> compositions, ProjectStatus projectStatus, ProjectType projectType, ProjectCommercialStatus projectCommercialStatus, Set<ProjectPurpose> projectPurposes) {
         this.id = id;
         this.title = title;
         this.description = description;
         this.illustration = illustration;
         this.isArchived = isArchived;
         this.projectOrder = projectOrder;
-        this.createdDate = creationDate;
+        this.createdDate = createdDate;
         this.lastUpdateDate = lastUpdateDate;
         this.supressionDate = supressionDate;
         this.definitivSupressionDate = definitivSupressionDate;
         this.user = user;
-        this.projectTags = projectTags;
-        this.projectMusicalGenderAddedSet = projectMusicalGenderAddedSet;
+        this.projectMusicalGendersPreDefined = projectMusicalGendersPreDefined;
         this.compositions = compositions;
         this.projectStatus = projectStatus;
         this.projectType = projectType;
         this.projectCommercialStatus = projectCommercialStatus;
         this.projectPurposes = projectPurposes;
-        this.projectMusicalGendersPreDefined = projectMusicalGendersPreDefined;
     }
 
     public Long getId() {
@@ -203,37 +203,28 @@ public class Project {
         this.user = user;
     }
 
-    public Set<ProjectTag> getProjectTags() {
-        return projectTags;
+    public boolean isArchived() {
+        return isArchived;
     }
-    public void setProjectTags(Set<ProjectTag> projectTags) {
-        this.projectTags = projectTags;
-    }
-
-    public Set<ProjectMusicalGenderAdded> getProjectMusicalGenderSet() {
-        return projectMusicalGenderAddedSet;
-    }
-    public void setProjectMusicalGenders(Set<ProjectMusicalGenderAdded> projectMusicalGenderAddedSet) {
-        this.projectMusicalGenderAddedSet = projectMusicalGenderAddedSet;
+    public void setArchived(boolean archived) {
+        isArchived = archived;
     }
 
-    public Set<Composition> getCompositons() {
-        return compositions;
+    public LocalDateTime getCreatedDate() {
+        return createdDate;
     }
-    public void setCompositons(Set<Composition> compositions) {
-        this.compositions = compositions;
+    public void setCreatedDate(LocalDateTime createdDate) {
+        this.createdDate = createdDate;
     }
 
-    public Set<ProjectMusicalGenderAdded> getProjectMusicalGenderAddedSet() {
-        return projectMusicalGenderAddedSet;
-    }
-    public void setProjectMusicalGenderAddedSet(Set<ProjectMusicalGenderAdded> projectMusicalGenderAddedSet) {
-        this.projectMusicalGenderAddedSet = projectMusicalGenderAddedSet;
+    public void setProjectMusicalGendersPreDefined(Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined) {
+        this.projectMusicalGendersPreDefined = projectMusicalGendersPreDefined;
     }
 
     public Set<Composition> getCompositions() {
         return compositions;
     }
+
     public void setCompositions(Set<Composition> compositions) {
         this.compositions = compositions;
     }
@@ -259,17 +250,16 @@ public class Project {
         this.projectCommercialStatus = projectCommercialStatus;
     }
 
+
     public Set<ProjectPurpose> getProjectPurposes() {
         return projectPurposes;
     }
+
     public void setProjectPurposes(Set<ProjectPurpose> projectPurposes) {
         this.projectPurposes = projectPurposes;
     }
 
     public Set<ProjectMusicalGenderPreDefined> getProjectMusicalGendersPreDefined() {
         return projectMusicalGendersPreDefined;
-    }
-    public void setProjectMusicalGendersPreDefined(Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined) {
-        this.projectMusicalGendersPreDefined = projectMusicalGendersPreDefined;
     }
 }

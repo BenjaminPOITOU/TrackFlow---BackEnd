@@ -1,6 +1,7 @@
 package com.eql.cda.track.flow.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -53,6 +54,7 @@ public abstract class User {
     private LocalDateTime suppressionDate;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @JsonManagedReference
     private List<Project> projects;
 
     @Enumerated(EnumType.STRING)

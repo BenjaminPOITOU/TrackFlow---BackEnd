@@ -1,22 +1,21 @@
 package com.eql.cda.track.flow.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
 
-import java.util.Date;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import jakarta.persistence.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
 @Table(name = "compositions")
+@EntityListeners(AuditingEntityListener.class)
 public class Composition {
 
     @Id
@@ -27,47 +26,63 @@ public class Composition {
     private String description;
     private Integer compositionOrder;
     private String illustration;
-    private Integer numberOfVersions;
-    private Integer numberOfBranches;
-    private Date creationDate;
-    private Date lastupdateDate;
-    private Date suppressionDate;
-    private Date definitivSupressionDate;
-    private String subGender;
-    private String projectMusicalGender;
 
-    @ManyToOne
-    @JoinColumn(name = "project_id")
+    @CreatedDate
+    private LocalDateTime createdDate;
+    @LastModifiedDate
+    private LocalDateTime lastUpdateDate;
+
+    private LocalDateTime suppressionDate;
+    private LocalDateTime definitivSupressionDate;
+
+
+    @ElementCollection(fetch = FetchType.LAZY) // LAZY est souvent préférable pour les collections
+    @CollectionTable(name = "composition_sub_genders", joinColumns = @JoinColumn(name = "composition_id")) // Table de jointure pour les sous-genres
+    @Column(name = "sub_gender") // Nom de la colonne dans la table de jointure
+    private List<String> subGenders = new ArrayList<>(); // Initialiser la liste
+
+    // --- Champs supprimés ---
+    // private List<ProjectMusicalGenderPreDefined> projectMusicalGender; // Supprimé
+    // private List<ProjectMusicalGenderAdded> projectMusicalGenderAdded; // Supprimé (cause principale de l'erreur)
+
+
+    @ManyToOne(fetch = FetchType.LAZY) // LAZY est souvent préférable pour les relations ToOne
+    @JoinColumn(name = "project_id", nullable = false) // Une composition doit appartenir à un projet
+    @JsonBackReference
     private Project project;
 
-    @OneToMany(mappedBy = "composition")
-    private Set<Branch> branches;
-
+    // Assurez-vous que l'entité 'Branch' existe, qu'elle est annotée @Entity
+    // et qu'elle a un champ 'private Composition composition;' annoté @ManyToOne
+    @OneToMany(mappedBy = "composition", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY) // cascade et orphanRemoval si besoin
+    private Set<Branch> branches = new HashSet<>(); // Initialiser le set
 
     @Enumerated(EnumType.STRING)
     @Column(name = "composition_status")
     private CompositionStatus compositionStatus;
 
+    // Constructeur par défaut requis par JPA
     public Composition() {
     }
-    public Composition(Long id, String title, String description, Integer compositionOrder, Integer time, String illustration, Integer numberOfVersions, Integer numberOfBranches, Date creationDate, Date lastupdateDate, Date suppressionDate, Date definitivSupressionDate, String subGender, String projectMusicalGender, Project project, Set<Branch> branches, CompositionStatus compositionStatus) {
+
+    // --- Constructeur mis à jour (sans les champs supprimés) ---
+    public Composition(Long id, String title, String description, Integer compositionOrder, String illustration, LocalDateTime createdDate, LocalDateTime lastUpdateDate, LocalDateTime suppressionDate, LocalDateTime definitivSupressionDate, List<String> subGenders, /* Supprimé */ /* Supprimé */ Project project, Set<Branch> branches, CompositionStatus compositionStatus) {
         this.id = id;
         this.title = title;
         this.description = description;
         this.compositionOrder = compositionOrder;
         this.illustration = illustration;
-        this.numberOfVersions = numberOfVersions;
-        this.numberOfBranches = numberOfBranches;
-        this.creationDate = creationDate;
-        this.lastupdateDate = lastupdateDate;
+        this.createdDate = createdDate;
+        this.lastUpdateDate = lastUpdateDate;
         this.suppressionDate = suppressionDate;
         this.definitivSupressionDate = definitivSupressionDate;
-        this.subGender = subGender;
-        this.projectMusicalGender = projectMusicalGender;
+        this.subGenders = subGenders != null ? new ArrayList<>(subGenders) : new ArrayList<>(); // Copie défensive
         this.project = project;
-        this.branches = branches;
+        this.branches = branches != null ? new HashSet<>(branches) : new HashSet<>(); // Copie défensive
         this.compositionStatus = compositionStatus;
     }
+
+
+    // --- Getters and Setters (mis à jour, sans ceux des champs supprimés) ---
 
     public Long getId() {
         return id;
@@ -105,61 +120,44 @@ public class Composition {
         this.illustration = illustration;
     }
 
-    public Integer getNumberOfVersions() {
-        return numberOfVersions;
+    public LocalDateTime getCreatedDate() {
+        return createdDate;
     }
-    public void setNumberOfVersions(Integer numberOfVersions) {
-        this.numberOfVersions = numberOfVersions;
-    }
-
-    public Integer getNumberOfBranches() {
-        return numberOfBranches;
-    }
-    public void setNumberOfBranches(Integer numberOfBranches) {
-        this.numberOfBranches = numberOfBranches;
+    public void setCreatedDate(LocalDateTime createdDate) {
+        this.createdDate = createdDate;
     }
 
-    public Date getCreationDate() {
-        return creationDate;
+    public LocalDateTime getLastUpdateDate() {
+        return lastUpdateDate;
     }
-    public void setCreationDate(Date creationDate) {
-        this.creationDate = creationDate;
-    }
-
-    public Date getLastupdateDate() {
-        return lastupdateDate;
-    }
-    public void setLastupdateDate(Date lastupdateDate) {
-        this.lastupdateDate = lastupdateDate;
+    public void setLastUpdateDate(LocalDateTime lastUpdateDate) {
+        this.lastUpdateDate = lastUpdateDate;
     }
 
-    public Date getSuppressionDate() {
+    public LocalDateTime getSuppressionDate() {
         return suppressionDate;
     }
-    public void setSuppressionDate(Date suppressionDate) {
+    public void setSuppressionDate(LocalDateTime suppressionDate) {
         this.suppressionDate = suppressionDate;
     }
 
-    public Date getDefinitivSupressionDate() {
+    public LocalDateTime getDefinitivSupressionDate() {
         return definitivSupressionDate;
     }
-    public void setDefinitivSupressionDate(Date definitivSupressionDate) {
+    public void setDefinitivSupressionDate(LocalDateTime definitivSupressionDate) {
         this.definitivSupressionDate = definitivSupressionDate;
     }
 
-    public String getSubGender() {
-        return subGender;
+    public List<String> getSubGenders() {
+        // Retourner une copie pour éviter les modifications externes non désirées si nécessaire
+        return subGenders; // Ou return new ArrayList<>(subGenders);
     }
-    public void setSubGender(String subGender) {
-        this.subGender = subGender;
+    public void setSubGenders(List<String> subGenders) {
+        // Copie défensive lors du set
+        this.subGenders = subGenders != null ? new ArrayList<>(subGenders) : new ArrayList<>();
     }
 
-    public String getProjectMusicalGender() {
-        return projectMusicalGender;
-    }
-    public void setProjectMusicalGender(String projectMusicalGender) {
-        this.projectMusicalGender = projectMusicalGender;
-    }
+    // --- Getters/Setters pour projectMusicalGender et projectMusicalGenderAdded sont SUPPRIMÉS ---
 
     public Project getProject() {
         return project;
@@ -169,14 +167,19 @@ public class Composition {
     }
 
     public Set<Branch> getBranches() {
-        return branches;
+        // Retourner une copie pour éviter les modifications externes non désirées si nécessaire
+        return branches; // Ou return new HashSet<>(branches);
     }
     public void setBranches(Set<Branch> branches) {
-        this.branches = branches;
+        // Copie défensive lors du set
+        this.branches = branches != null ? new HashSet<>(branches) : new HashSet<>();
     }
 
     public CompositionStatus getCompositionStatus() {
         return compositionStatus;
     }
-
+    public void setCompositionStatus(CompositionStatus compositionStatus) {
+        this.compositionStatus = compositionStatus;
+    }
 }
+

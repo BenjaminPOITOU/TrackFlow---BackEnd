@@ -1,17 +1,16 @@
 package com.eql.cda.track.flow.dto.projectDto;
 
 import com.eql.cda.track.flow.entity.ProjectCommercialStatus;
-import com.eql.cda.track.flow.entity.ProjectMusicalGenderAdded;
 import com.eql.cda.track.flow.entity.ProjectMusicalGenderPreDefined;
 import com.eql.cda.track.flow.entity.ProjectPurpose;
 import com.eql.cda.track.flow.entity.ProjectStatus;
-import com.eql.cda.track.flow.entity.ProjectTag;
 import com.eql.cda.track.flow.entity.ProjectType;
 import com.eql.cda.track.flow.validation.Constants;
 import jakarta.persistence.Column;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 
 public class ProjectUpdateDto {
@@ -30,15 +29,13 @@ public class ProjectUpdateDto {
     private ProjectCommercialStatus projectCommercialStatus;
     private Set<ProjectPurpose> projectPurposes;
     private Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined;
-    private Set<ProjectMusicalGenderAdded> projectMusicalGenderAddedSet;
-    private Set<ProjectTag> projectTagSet;
     private LocalDateTime creationDate;
 
 
     public ProjectUpdateDto() {
     }
 
-    public ProjectUpdateDto(String title, String description, String illustration, ProjectStatus projectStatus, ProjectType projectType, ProjectCommercialStatus projectCommercialStatus, Set<ProjectPurpose> projectPurposes, Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined, Set<ProjectMusicalGenderAdded> projectMusicalGenderAddedSet, Set<ProjectTag> projectTagSet, LocalDateTime creationDate) {
+    public ProjectUpdateDto(String title, String description, String illustration, ProjectStatus projectStatus, ProjectType projectType, ProjectCommercialStatus projectCommercialStatus, Set<ProjectPurpose> projectPurposes, Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined, LocalDateTime creationDate) {
         this.title = title;
         this.description = description;
         this.illustration = illustration;
@@ -47,8 +44,6 @@ public class ProjectUpdateDto {
         this.projectCommercialStatus = projectCommercialStatus;
         this.projectPurposes = projectPurposes;
         this.projectMusicalGendersPreDefined = projectMusicalGendersPreDefined;
-        this.projectMusicalGenderAddedSet = projectMusicalGenderAddedSet;
-        this.projectTagSet = projectTagSet;
         this.creationDate = creationDate;
     }
 
@@ -114,22 +109,6 @@ public class ProjectUpdateDto {
 
     public void setProjectMusicalGendersPreDefined(Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined) {
         this.projectMusicalGendersPreDefined = projectMusicalGendersPreDefined;
-    }
-
-    public Set<ProjectMusicalGenderAdded> getProjectMusicalGenderAddedSet() {
-        return projectMusicalGenderAddedSet;
-    }
-
-    public void setProjectMusicalGenderAddedSet(Set<ProjectMusicalGenderAdded> projectMusicalGenderAddedSet) {
-        this.projectMusicalGenderAddedSet = projectMusicalGenderAddedSet;
-    }
-
-    public Set<ProjectTag> getProjectTagSet() {
-        return projectTagSet;
-    }
-
-    public void setProjectTagSet(Set<ProjectTag> projectTagSet) {
-        this.projectTagSet = projectTagSet;
     }
 
     public LocalDateTime getCreationDate() {
