@@ -125,7 +125,7 @@ public class CompositionController {
         } catch (EntityNotFoundException e) { // Si l'utilisateur n'existe pas
             return ResponseEntity.notFound().build(); // Statut 404 Not Found
         }
-        // Ou utiliser un @ControllerAdvice
+
     }
 
     /**

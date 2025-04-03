@@ -92,7 +92,7 @@ public class CompositionServiceImpl implements CompositionService {
 
         List<Composition> compositions = recentCompositionsPage.getContent();
         return compositions.stream()
-                .map(this::mapEntityToSummaryDto) // Appel de la méthode de mapping
+                .map(this::mapEntityToSummaryDto)
                 .collect(Collectors.toList());
     }
 
