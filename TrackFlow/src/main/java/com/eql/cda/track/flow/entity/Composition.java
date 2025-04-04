@@ -41,10 +41,6 @@ public class Composition {
     @Column(name = "sub_gender") // Nom de la colonne dans la table de jointure
     private List<String> subGenders = new ArrayList<>(); // Initialiser la liste
 
-    // --- Champs supprimés ---
-    // private List<ProjectMusicalGenderPreDefined> projectMusicalGender; // Supprimé
-    // private List<ProjectMusicalGenderAdded> projectMusicalGenderAdded; // Supprimé (cause principale de l'erreur)
-
 
     @ManyToOne(fetch = FetchType.LAZY) // LAZY est souvent préférable pour les relations ToOne
     @JoinColumn(name = "project_id", nullable = false) // Une composition doit appartenir à un projet

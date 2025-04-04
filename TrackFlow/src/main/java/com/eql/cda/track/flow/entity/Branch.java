@@ -1,7 +1,9 @@
 package com.eql.cda.track.flow.entity;
 
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -9,13 +11,16 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.util.Date;
-import java.util.List;
+import java.time.LocalDateTime;
 import java.util.Set;
 
 @Entity
 @Table(name = "branches")
+@EntityListeners(AuditingEntityListener.class)
 public class Branch {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -23,10 +28,15 @@ public class Branch {
 
     private String name;
     private String description;
-    private Date creationDate;
-    private Date supressionDate;
-    private Date definitivSupressionDate;
-    private Date lastupdateDate;
+
+    @CreatedDate
+    private LocalDateTime createdDate;
+    private LocalDateTime  supressionDate;
+    private LocalDateTime  definitivSupressionDate;
+
+    @Column(name = "last_update_date")
+    @LastModifiedDate
+    private LocalDateTime lastUpdateDate;
     private Long branchParentId;
 
     @ManyToOne
@@ -38,14 +48,14 @@ public class Branch {
 
     public Branch() {
     }
-    public Branch(Long id, String name, String description, Date creationDate, Date supressionDate, Date definitivSupressionDate, Date lastupdateDate, Long branchParentId, Composition composition, Set<Version> versions) {
+    public Branch(Long id, String name, String description, LocalDateTime createdDate, LocalDateTime supressionDate, LocalDateTime  definitivSupressionDate, LocalDateTime lastUpdateDate, Long branchParentId, Composition composition, Set<Version> versions) {
         this.id = id;
         this.name = name;
         this.description = description;
-        this.creationDate = creationDate;
+        this.createdDate = createdDate;
         this.supressionDate = supressionDate;
         this.definitivSupressionDate = definitivSupressionDate;
-        this.lastupdateDate = lastupdateDate;
+        this.lastUpdateDate = lastUpdateDate;
         this.branchParentId = branchParentId;
         this.composition = composition;
         this.versions = versions;
@@ -73,32 +83,32 @@ public class Branch {
         this.description = description;
     }
 
-    public Date getCreationDate() {
-        return creationDate;
+    public LocalDateTime getCreatedDate() {
+        return createdDate;
     }
-    public void setCreationDate(Date creationDate) {
-        this.creationDate = creationDate;
+    public void setCreatedDate(LocalDateTime createdDate) {
+        this.createdDate = createdDate;
     }
 
-    public Date getSupressionDate() {
+    public LocalDateTime getSupressionDate() {
         return supressionDate;
     }
-    public void setSupressionDate(Date supressionDate) {
+    public void setSupressionDate(LocalDateTime supressionDate) {
         this.supressionDate = supressionDate;
     }
 
-    public Date getDefinitivSupressionDate() {
+    public LocalDateTime getDefinitivSupressionDate() {
         return definitivSupressionDate;
     }
-    public void setDefinitivSupressionDate(Date definitivSupressionDate) {
+    public void setDefinitivSupressionDate(LocalDateTime definitivSupressionDate) {
         this.definitivSupressionDate = definitivSupressionDate;
     }
 
-    public Date getLastupdateDate() {
-        return lastupdateDate;
+    public LocalDateTime getLastUpdateDate() {
+        return lastUpdateDate;
     }
-    public void setLastupdateDate(Date lastupdateDate) {
-        this.lastupdateDate = lastupdateDate;
+    public void setLastUpdateDate(LocalDateTime lastUpdateDate) {
+        this.lastUpdateDate = lastUpdateDate;
     }
 
     public Long getBranchParentId() {

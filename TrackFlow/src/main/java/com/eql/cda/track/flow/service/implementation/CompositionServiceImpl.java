@@ -256,7 +256,7 @@ public class CompositionServiceImpl implements CompositionService {
 
             Set<ProjectMusicalGenderPreDefined> genders = project.getProjectMusicalGendersPreDefined();
             if (genders != null) {
-                dto.setProjectMusicalGenderPreDefinedList(new HashSet<>(genders)); // Copie dans un nouveau Set
+                dto.setProjectMusicalGenderPreDefinedList(new HashSet<>(genders));
             } else {
                 dto.setProjectMusicalGenderPreDefinedList(Collections.emptySet());
             }
@@ -272,7 +272,6 @@ public class CompositionServiceImpl implements CompositionService {
             dto.setSubGenders(new ArrayList<>());
         }
 
-        // Assurez-vous que les méthodes countBranches et countTotalVersions existent et sont appelables ici
         dto.setTotalBranches(countBranches(composition));
         dto.setTotalVersions(countTotalVersions(composition));
 

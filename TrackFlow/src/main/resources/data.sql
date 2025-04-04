@@ -50,3 +50,7 @@ INSERT INTO project_musical_gender_predefined (project_id, gender) VALUES (4, 'A
 -- Projet 5 (ID=5)
 INSERT INTO project_musical_gender_predefined (project_id, gender) VALUES (5, 'LO_FI');
 INSERT INTO project_musical_gender_predefined (project_id, gender) VALUES (5, 'HIP_HOP');
+
+
+INSERT INTO compositions (id, title, description, composition_order, illustration, created_date, last_update_date, suppression_date, definitiv_supression_date, project_id, composition_status) VALUES (1, 'Mon Premier Thème', 'Idée initiale de la composition pour le projet rock', 1, '/images/default_comp.png', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL, NULL, 1, 'EBAUCHE');
+
