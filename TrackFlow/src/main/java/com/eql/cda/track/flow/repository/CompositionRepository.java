@@ -19,9 +19,6 @@ public interface CompositionRepository extends JpaRepository <Composition, Long>
     @Query("SELECT c FROM Composition c WHERE c.project.user.id = :userId")
     Page<Composition> findAllByProjectUserId(@Param("userId") Long userId, Pageable pageable);
 
-
-
-
     Optional<Composition> findById(Long compositionId);
 
 }
