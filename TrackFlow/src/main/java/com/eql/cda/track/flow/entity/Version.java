@@ -41,7 +41,6 @@ public class Version {
     @Column(name = "`key`")
     private String key;
     private Integer durationSeconds;
-    private String description;
     private String audioFileUrl;
 
     @ElementCollection(fetch = FetchType.LAZY) // LAZY est souvent préférable pour les collections
@@ -95,14 +94,13 @@ public class Version {
     public Version() {
     }
 
-    public Version(Long id, String name, String author, String bpm, String key, Integer durationSeconds, String description, String audioFileUrl, Map<String, String> metadata, LocalDateTime createdDate, LocalDateTime supressionDate, LocalDateTime definitivSupressionDate, Long parentVersionId, Long mergedSourceId, Branch branch, List<PlaylistVersion> playlistVersions, List<Annotation> annotations, Set<Access> accesses, List<VersionInstrumentPreDefined> versionInstrumentPreDefinedList) {
+    public Version(Long id, String name, String author, String bpm, String key, Integer durationSeconds,String audioFileUrl, Map<String, String> metadata, LocalDateTime createdDate, LocalDateTime supressionDate, LocalDateTime definitivSupressionDate, Long parentVersionId, Long mergedSourceId, Branch branch, List<PlaylistVersion> playlistVersions, List<Annotation> annotations, Set<Access> accesses) {
         this.id = id;
         this.name = name;
         this.author = author;
         this.bpm = bpm;
         this.key = key;
         this.durationSeconds = durationSeconds;
-        this.description = description;
         this.audioFileUrl = audioFileUrl;
         this.metadata = metadata;
         this.createdDate = createdDate;
@@ -128,13 +126,6 @@ public class Version {
     }
     public void setName(String name) {
         this.name = name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-    public void setDescription(String description) {
-        this.description = description;
     }
 
     public String getAudioFileUrl() {

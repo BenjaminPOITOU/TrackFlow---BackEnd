@@ -7,7 +7,8 @@ import java.util.Optional;
 
 public interface VersionNamingService {
 
-    String generateNextVersionName(Branch branch, Long parentVersionId, Optional<Version> latestVersionOnBranch);
+    String generateNextVersionName(Version parentVersion,Branch branch);
     String calculatePotentialNameForBranch(Long branchId);
+    String generateFirstEverVersionName();
 
 }

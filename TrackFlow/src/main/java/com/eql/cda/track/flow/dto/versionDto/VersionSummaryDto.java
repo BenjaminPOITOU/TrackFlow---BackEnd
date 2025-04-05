@@ -9,18 +9,18 @@ public class VersionSummaryDto {
     private Long versionId;
     private String versionName;
     private String branchName;
-    private String author;
+   // private String author;
     private LocalDateTime createdDate;
 
 
     public VersionSummaryDto() {
     }
 
-    public VersionSummaryDto(Long versionId, String versionName, String branchName, String author, LocalDateTime createdDate) {
+    public VersionSummaryDto(Long versionId, String versionName, String branchName, LocalDateTime createdDate) {
         this.versionId = versionId;
         this.versionName = versionName;
         this.branchName = branchName;
-        this.author = author;
+        //this.author = author;
         this.createdDate = createdDate;
     }
 
@@ -45,12 +45,12 @@ public class VersionSummaryDto {
         this.branchName = branchName;
     }
 
-    public String getAuthor() {
-        return author;
-    }
-    public void setAuthor(String author) {
-        this.author = author;
-    }
+    //public String getAuthor() {
+     //   return author;
+    //}
+    //public void setAuthor(String author) {
+    //    this.author = author;
+   // }
 
     public LocalDateTime getCreatedDate() {
         return createdDate;

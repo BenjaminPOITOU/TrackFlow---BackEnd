@@ -8,7 +8,7 @@ import java.util.List;
 
 public interface BranchService {
     List<BranchSummaryDto> getAllBranches(Long compositionId);
-    Branch findOrCreateBranch(Composition composition, Long branchId, String newBranchName, Long parentBranchId);
+    Branch findOrCreateBranch(Composition composition, Long branchId, String newBranchName, Long parentBranchId, String branchDescription);
 
 
 }

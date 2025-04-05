@@ -1,5 +1,6 @@
 package com.eql.cda.track.flow.dto.versionDto;
 
+import com.eql.cda.track.flow.dto.annotationDto.AnnotationResponseDto;
 import com.eql.cda.track.flow.dto.branchDto.BranchSummaryDto;
 import com.eql.cda.track.flow.entity.VersionInstrumentPreDefined;
 
@@ -14,20 +15,21 @@ public class NewVersionModalDto {
     private String potentialNextVersionName; // Nom calculé pour la prochaine version sur la branche actuelle
     private List<VersionInstrumentPreDefined> previousVersionInstruments; // Instruments de la version actuelle
 
-    // TODO: Ajouter plus tard:
-    // private List<AnnotationSummaryDto> previousVersionAnnotations;
+
+    private List<AnnotationResponseDto> previousVersionAnnotations;
 
 
     public NewVersionModalDto() {
     }
 
-    public NewVersionModalDto(Long currentVersionId, Long currentBranchId, String currentBranchName, List<BranchSummaryDto> availableBranches, String potentialNextVersionName, List<VersionInstrumentPreDefined> previousVersionInstruments) {
+    public NewVersionModalDto(Long currentVersionId, Long currentBranchId, String currentBranchName, List<BranchSummaryDto> availableBranches, String potentialNextVersionName, List<VersionInstrumentPreDefined> previousVersionInstruments, List<AnnotationResponseDto> previousVersionAnnotations) {
         this.currentVersionId = currentVersionId;
         this.currentBranchId = currentBranchId;
         this.currentBranchName = currentBranchName;
         this.availableBranches = availableBranches;
         this.potentialNextVersionName = potentialNextVersionName;
         this.previousVersionInstruments = previousVersionInstruments;
+        this.previousVersionAnnotations = previousVersionAnnotations;
     }
 
     public Long getCurrentVersionId() {
@@ -76,5 +78,13 @@ public class NewVersionModalDto {
 
     public void setPreviousVersionInstruments(List<VersionInstrumentPreDefined> previousVersionInstruments) {
         this.previousVersionInstruments = previousVersionInstruments;
+    }
+
+    public List<AnnotationResponseDto> getPreviousVersionAnnotations() {
+        return previousVersionAnnotations;
+    }
+
+    public void setPreviousVersionAnnotations(List<AnnotationResponseDto> previousVersionAnnotations) {
+        this.previousVersionAnnotations = previousVersionAnnotations;
     }
 }

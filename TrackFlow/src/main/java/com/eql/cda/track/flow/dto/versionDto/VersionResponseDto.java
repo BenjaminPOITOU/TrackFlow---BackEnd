@@ -12,7 +12,7 @@ public class VersionResponseDto {
     private String bpm;
     private String key;
     private Integer durationSeconds;
-    private String description;
+    private String branchDescription;
     private String audioFileUrl;
     private Map<String, String> metadata;
     private LocalDateTime createdDate;
@@ -23,14 +23,14 @@ public class VersionResponseDto {
 
     public VersionResponseDto() {
     }
-    public VersionResponseDto(Long id, String name, String author, String bpm, String key, Integer durationSeconds, String description, String audioFileUrl, Map<String, String> metadata, LocalDateTime createdDate, Long branchId, String branchName, Set<String> instruments) {
+    public VersionResponseDto(Long id, String name, String author, String bpm, String key, Integer durationSeconds, String branchDescription, String audioFileUrl, Map<String, String> metadata, LocalDateTime createdDate, Long branchId, String branchName, Set<String> instruments) {
         this.id = id;
         this.name = name;
         this.author = author;
         this.bpm = bpm;
         this.key = key;
         this.durationSeconds = durationSeconds;
-        this.description = description;
+        this.branchDescription = branchDescription;
         this.audioFileUrl = audioFileUrl;
         this.metadata = metadata;
         this.createdDate = createdDate;
@@ -58,8 +58,8 @@ public class VersionResponseDto {
     public Integer getDurationSeconds() {
         return durationSeconds;
     }
-    public String getDescription() {
-        return description;
+    public String getBranchDescription() {
+        return branchDescription;
     }
     public String getAudioFileUrl() {
         return audioFileUrl;
@@ -98,8 +98,8 @@ public class VersionResponseDto {
     public void setDurationSeconds(Integer durationSeconds) {
         this.durationSeconds = durationSeconds;
     }
-    public void setDescription(String description) {
-        this.description = description;
+    public void setBranchDescription(String branchDescription) {
+        this.branchDescription = branchDescription;
     }
     public void setAudioFileUrl(String audioFileUrl) {
         this.audioFileUrl = audioFileUrl;
