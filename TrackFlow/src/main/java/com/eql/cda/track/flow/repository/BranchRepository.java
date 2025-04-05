@@ -11,4 +11,6 @@ public interface BranchRepository extends JpaRepository<Branch, Long> {
     List<Branch> findAllByCompositionId(Long compositionId);
     List<Branch> findByCompositionIdOrderByNameAsc(Long compositionId);
 
+    List<Branch> findByCompositionId(Long compositionId);
+
 }

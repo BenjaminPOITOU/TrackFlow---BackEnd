@@ -95,54 +95,36 @@ public class VersionController {
         }
     }
 
-    // --- Endpoint pour la Création (Étape 2) ---
-    /**
-     * Creates a new Version entity using metadata and the URL from a previous upload.
-     *
-     * @param compositionId The ID of the parent composition.
-     * @param dto The DTO containing version details (URL, metadata, branch info, etc.).
-     * @return ResponseEntity containing the newly created Version (or its DTO), or an error status.
-     */
-    @PostMapping("/compositions/{compositionId}/versions")
-    // Utiliser @Valid pour déclencher la validation des annotations dans VersionCreateDto
-    // TODO: Remplacer la réponse Version par VersionResponseDto
-    public ResponseEntity<?> createVersion( // Utiliser "?" temporairement
-                                                             @PathVariable Long compositionId,
+    @PostMapping("/compositions/{compositionId}/versions") // L'ID composition reste utile pour l'URL
+    public ResponseEntity<VersionResponseDto> createVersion( // <-- Changement type retour
+                                                             @PathVariable Long compositionId, // Gardé pour la sémantique URL et log peut-être
                                                              @Valid @RequestBody VersionCreateDto dto) {
 
         logger.info("POST /api/compositions/{}/versions - Received request to create version.", compositionId);
-        logger.debug("Request body: {}", dto); // Attention si contient des données sensibles
+        logger.debug("Request body: {}", dto);
 
         try {
+            // --- RETRAIT du compositionId de l'appel Service ---
             VersionResponseDto createdVersion = versionService.createVersion(compositionId, dto);
+            // --- FIN RETRAIT ---
+
             logger.info("Version created successfully with ID: {} for composition {}", createdVersion.getId(), compositionId);
 
-            // TODO: Créer et retourner un VersionResponseDto au lieu de l'entité
-            // VersionResponseDto responseDto = mapToVersionResponseDto(createdVersion);
+            // Construire l'URI avec l'ID de la nouvelle version
+            // URI location = ... buildAndExpand(createdVersion.id()).toUri();
 
-            // Retourner 201 Created avec la localisation (URL) de la nouvelle ressource
-            // URI location = ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/versions/{id}")
-            //         .buildAndExpand(createdVersion.getId()).toUri();
-            // return ResponseEntity.created(location).body(responseDto);
+            // Retourner 201 Created avec le DTO dans le corps
+            return ResponseEntity.status(HttpStatus.CREATED).body(createdVersion); // Type maintenant correct
 
-            // Temporairement, retournons l'entité avec 201
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdVersion);
-
-        } catch (EntityNotFoundException e) {
-            logger.warn("Version creation failed for composition {}: Entity not found - {}", compositionId, e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage()); // 404 Not Found
-        } catch (IllegalArgumentException e) {
-            // Peut venir de la validation dans le service OU de @Valid qui a échoué (BindingResult serait mieux ici)
-            logger.warn("Version creation failed for composition {}: Invalid data - {}", compositionId, e.getMessage());
-            return ResponseEntity.badRequest().body(e.getMessage()); // 400 Bad Request
-        } catch (IllegalStateException e) {
-            logger.error("Version creation failed for composition {}: Invalid state (e.g., naming error) - {}", compositionId, e.getMessage());
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage()); // 409 Conflict (ou 500)
-        } catch (Exception e) {
-            logger.error("Version creation failed for composition {}: Unexpected error - {}", compositionId, e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred."); // 500
+        } catch (EntityNotFoundException e) { // ...
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null); // Pas de corps sur 404?
+        } catch (IllegalArgumentException e) { // ...
+            return ResponseEntity.badRequest().body(null); // Pas de corps sur 400?
+        } catch (IllegalStateException e) { // ...
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(null); // Pas de corps sur 409?
+        } catch (Exception e) { // ...
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // Pas de corps sur 500
         }
-        // Note: Pour une gestion d'erreur plus propre (notamment @Valid), un @ControllerAdvice est recommandé.
     }
 
 
@@ -257,37 +239,5 @@ public class VersionController {
         }
     }
 
-    /**
-     * Calcule et retourne le nom potentiel pour la prochaine version
-     * sur une branche spécifiée.
-     * Appelée par le frontend lors du changement de branche dans la modale.
-     *
-     * @param branchId L'ID de la branche pour laquelle calculer le nom.
-     * @return ResponseEntity contenant le nom potentiel (e.g., "V2.1") ou 404 si branche non trouvée.
-     */
-    @GetMapping("/branches/{branchId}/potential-next-name") // Endpoint logique
-    public ResponseEntity<String> getPotentialNextVersionNameForBranch(@PathVariable Long branchId) {
-        logger.info("GET /api/branches/{}/potential-next-name - Requesting potential name.", branchId);
-        try {
-            // ---> APPEL À LA MÉTHODE DU SERVICE ICI <---
-            String potentialName = versionNamingService.calculatePotentialNameForBranch(branchId);
-            logger.debug("Calculated potential name for branch {}: {}", branchId, potentialName);
-            // Retourne juste le nom, potentiellement dans un petit objet JSON
-            // return ResponseEntity.ok().body(Map.of("potentialName", potentialName));
-            return ResponseEntity.ok(potentialName); // Ou juste en texte brut
-
-        } catch (EntityNotFoundException e) {
-            logger.warn("Cannot calculate potential name: Branch {} not found.", branchId);
-            return ResponseEntity.notFound().build(); // Branche non trouvée
-        } catch (Exception e) {
-            logger.error("Error calculating potential name for branch {}: {}", branchId, e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error calculating name"); // Erreur serveur
-        }
-    }
-    // TODO: Ajouter des méthodes helper pour mapper les Entités vers les DTOs (Response/Summary)
-    // private VersionResponseDto mapToVersionResponseDto(Version version) { ... }
-    // private VersionSummaryDto mapToVersionSummaryDto(Version version) { ... }
-
-    // TODO: Envisager un @ControllerAdvice pour centraliser la gestion des exceptions
 
 }

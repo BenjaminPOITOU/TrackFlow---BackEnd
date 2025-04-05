@@ -7,18 +7,17 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
-public record AnnotationCreateDto(
+public record NewVersionAnnotationDto(
 
         @NotBlank
-        @Size(max = 1000) // Ajuste la taille max
-        String content,
+        @Size(max = 1000) String content,
 
-        @PositiveOrZero // Ou accepte null si PositionOrZero n'accepte pas null directement
-        Float timePosition, // Nullable
-
+        @PositiveOrZero Float timePosition,
         @NotNull
         AnnotationCategory category,
 
         @NotNull
-        AnnotationStatus status // Le frontend peut envoyer la valeur initiale)
+        AnnotationStatus status,
+        Long sourceAnnotationId // ID de l'annotation N-1 source (nullable si création pure)
+
 ) {}

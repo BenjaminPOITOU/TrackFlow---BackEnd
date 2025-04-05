@@ -2,6 +2,7 @@ package com.eql.cda.track.flow.entity;
 
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
@@ -9,14 +10,19 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.Where;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.util.Date;
-import java.util.List;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "annotations")
+@SQLDelete(sql = "UPDATE annotations SET supression_date = CURRENT_TIMESTAMP WHERE id = ?")
+@Where(clause = "supression_date IS NULL")
+@EntityListeners(AuditingEntityListener.class)
 public class Annotation {
 
     @Id
@@ -25,8 +31,11 @@ public class Annotation {
 
     private String content;
     private Float timePosition;
-    private Date creationDate;
-    private Date supressionDate;
+
+    @CreatedDate
+    private LocalDateTime creationDate;
+    private LocalDateTime supressionDate;
+    private boolean isResolved;
 
     @ManyToOne
     @JoinColumn(name = "version_id")
@@ -41,12 +50,14 @@ public class Annotation {
 
     public Annotation() {
     }
-    public Annotation(Long id, String content, Float timePosition, Date creationDate, Date supressionDate, Version version, AnnotationCategory annotationCategory, AnnotationStatus annotationStatus) {
+
+    public Annotation(Long id, String content, Float timePosition, LocalDateTime creationDate, LocalDateTime supressionDate, boolean isResolved, Version version, AnnotationCategory annotationCategory, AnnotationStatus annotationStatus) {
         this.id = id;
         this.content = content;
         this.timePosition = timePosition;
         this.creationDate = creationDate;
         this.supressionDate = supressionDate;
+        this.isResolved = isResolved;
         this.version = version;
         this.annotationCategory = annotationCategory;
         this.annotationStatus = annotationStatus;
@@ -73,18 +84,33 @@ public class Annotation {
         this.timePosition = timePosition;
     }
 
-    public Date getCreationDate() {
+    public LocalDateTime getCreationDate() {
         return creationDate;
     }
-    public void setCreationDate(Date creationDate) {
+    public void setCreationDate(LocalDateTime creationDate) {
         this.creationDate = creationDate;
     }
 
-    public Date getSupressionDate() {
+    public LocalDateTime getSupressionDate() {
         return supressionDate;
     }
-    public void setSupressionDate(Date supressionDate) {
+    public void setSupressionDate(LocalDateTime supressionDate) {
         this.supressionDate = supressionDate;
+    }
+
+    public boolean isResolved() {
+        return isResolved;
+    }
+    public void setResolved(boolean resolved) {
+        this.isResolved = resolved;
+    }
+
+    public void setAnnotationCategory(AnnotationCategory annotationCategory) {
+        this.annotationCategory = annotationCategory;
+    }
+
+    public void setAnnotationStatus(AnnotationStatus annotationStatus) {
+        this.annotationStatus = annotationStatus;
     }
 
     public Version getVersion() {
@@ -101,5 +127,7 @@ public class Annotation {
     public AnnotationStatus getAnnotationStatus() {
         return annotationStatus;
     }
+
+
 
 }

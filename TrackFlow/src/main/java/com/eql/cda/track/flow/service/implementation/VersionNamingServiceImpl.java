@@ -22,7 +22,7 @@ import static com.eql.cda.track.flow.validation.Constants.VERSION_NAME_PATTERN;
 public class VersionNamingServiceImpl implements VersionNamingService {
     private static final Logger logger = LogManager.getLogger(VersionNamingServiceImpl.class);
 
-    private static final String MAIN_BRANCH_NAME = "main";
+    public static final String MAIN_BRANCH_NAME = "main";
 
     private final VersionRepository versionRepository;
     private final BranchRepository branchRepository;
@@ -33,127 +33,152 @@ public class VersionNamingServiceImpl implements VersionNamingService {
     }
 
     @Override
-    public String generateNextVersionName(Branch branch, Long parentVersionId, Optional<Version> latestVersionOpt) {
-        String branchName = branch.getName(); // Pour la lisibilité
-        logger.debug("Generating next version name for branch '{}' (ID: {}). ParentVersionId provided: {}. Latest version present: {}",
-                branchName, branch.getId(), parentVersionId, latestVersionOpt.isPresent());
+    public String generateNextVersionName(Version parentVersion, Branch targetBranch) {
+        logger.debug("Generating next version name for target branch '{}', originating from parent version '{}'",
+                targetBranch.getName(), parentVersion.getName());
 
-        if (latestVersionOpt.isPresent()) {
-            // --- CAS 1: Branche EXISTANTE avec au moins une version ---
-            Version latestVersion = latestVersionOpt.get();
-            logger.debug("Found latest version on branch '{}': '{}' (ID: {})", branchName, latestVersion.getName(), latestVersion.getId());
-            return incrementExistingVersion(latestVersion.getName(), branchName);
+        // 1. Rechercher la dernière version sur la branche CIBLE (TRI M.m !)
+        // Assumons que la méthode repo trie maintenant V[M].[m] correctement.
+        Optional<Version> latestVersionOnTargetBranchOpt = versionRepository.findTopByBranchOrderByNameDesc(targetBranch);
 
+        if (latestVersionOnTargetBranchOpt.isPresent()) {
+            // CAS 1: Branche EXISTANTE -> Incrémenter (MAJEUR si main, MINOR sinon)
+            Version latestVersion = latestVersionOnTargetBranchOpt.get();
+            logger.debug("Found latest version '{}' on target branch '{}'. Incrementing.", latestVersion.getName(), targetBranch.getName());
+            return incrementExistingVersion(latestVersion.getName(), targetBranch.getName());
         } else {
-            // --- CAS 2: PREMIÈRE version sur cette branche ---
-            logger.debug("No existing version found on branch '{}'. Determining first version name.", branchName);
-            if (parentVersionId != null) {
-                // Sous-cas 2a: Nouvelle branche basée sur une version parente explicite
-                logger.debug("Generating first version name for new branch '{}' based on parent version ID: {}", branchName, parentVersionId);
-                return generateNameForNewBranchFromParent(parentVersionId, branchName);
-            } else {
-                // Sous-cas 2b: Première version absolue (ou branche "main" sans parent spécifié)
-                if (MAIN_BRANCH_NAME.equalsIgnoreCase(branchName)) {
-                    logger.info("First version on '{}' branch (or no parent specified). Starting with V1.0", branchName);
-                    return "V1.0"; // Standard pour la branche principale initiale
-                } else {
-                    // Cas potentiellement problématique : première version sur une branche non-main SANS parent ?
-                    // Devrait être normalement évité par la validation DTO qui requiert parentVersionId si newBranchName est fourni.
-                    logger.warn("Attempting to create first version on non-main branch '{}' without explicit parentVersionId. This might indicate a logic issue. Defaulting to V1.0, review context.", branchName);
-                    return "V1.0"; // Ou lancer une exception si ce cas est interdit
-                    // throw new IllegalStateException("Cannot create first version on non-main branch '" + branchName + "' without specifying a parentVersionId.");
-                }
-            }
+            // CAS 2: PREMIÈRE version sur cette branche cible.
+            // Selon la nouvelle règle, parentVersion DOIT être sur 'main'.
+            logger.debug("No existing version on branch '{}'. Generating first name based on parent '{}' (must be on main).",
+                    targetBranch.getName(), parentVersion.getName());
+            // La validation que parent est sur main et en V.X.0 est faite DANS la méthode helper.
+            return generateFirstVersionNameForNewBranch(parentVersion);
         }
     }
 
-    private String generateNameForNewBranchFromParent(Long parentVersionId, String newBranchName) {
+    /**
+     * Génère le nom de la PREMIÈRE version pour une NOUVELLE branche (qui DOIT être créée depuis 'main').
+     * Logique: Si la source sur main est V[M].0, la nouvelle branche commence à V[M].1.
+     *
+     * @param mainSourceVersion La version sur la branche 'main' depuis laquelle la nouvelle branche est créée.
+     * @return Le premier nom de version pour la nouvelle branche (ex: "V2.1").
+     */
+    private String generateFirstVersionNameForNewBranch(Version mainSourceVersion) {
+        String sourceName = mainSourceVersion.getName();
+        String sourceBranchName = mainSourceVersion.getBranch().getName(); // Vérifier nullité avant
 
-        Version parentVersion = versionRepository.findById(parentVersionId)
-                .orElseThrow(() -> new EntityNotFoundException("Parent version specified (ID: " + parentVersionId + ") not found for new branch '" + newBranchName + "'."));
+        // Validation: S'assurer que la source est bien sur 'main' (règle métier)
+        if(!MAIN_BRANCH_NAME.equalsIgnoreCase(sourceBranchName)) {
+            logger.error("Attempted to generate new branch name from a non-main source version '{}' on branch '{}'. This violates the new rule.", sourceName, sourceBranchName);
+            // Lever une exception car c'est une violation des préconditions
+            throw new IllegalArgumentException("Cannot create new branch from non-main branch source: " + sourceName);
+        }
 
-        String parentName = parentVersion.getName();
-        logger.debug("Generating first name for new branch '{}' based on parent '{}' (ID: {})", newBranchName, parentName, parentVersionId);
-
-        Matcher matcher = VERSION_NAME_PATTERN.matcher(parentName);
-        if (!matcher.matches()) {
-            logger.error("Cannot generate name for new branch: Could not parse parent version name '{}' (ID: {}).", parentName, parentVersionId);
-            throw new IllegalStateException("Invalid parent version name format: " + parentName);
+        Matcher matcher = VERSION_NAME_PATTERN.matcher(sourceName);
+        if (!matcher.matches() || matcher.group(2) == null || !matcher.group(2).equals("0")) {
+            logger.error("Cannot parse source version name '{}' from main branch (expected V[M].0 format). Fallback or error?", sourceName);
+            // Fallback risqué, levons une exception
+            throw new IllegalArgumentException("Invalid source version format from main branch: " + sourceName + ". Expected V[M].0.");
         }
 
         int major = Integer.parseInt(matcher.group(1));
-        int minor = matcher.group(2) != null ? Integer.parseInt(matcher.group(2)) : 0;
-        // Le patch du parent n'influence pas directement le nom de la nouvelle branche dans ce modèle
+        // Le mineur est 0 par définition de main, on le fixe à 1 pour la nouvelle branche.
+        int newMinor = 1;
 
-        String nextName;
-        if (matcher.group(2) == null || minor == 0) {
-            // Cas 1: Parent est V[M] (groupe 2 est null) OU V[M].0 (minor est 0)
-            // -> La nouvelle branche démarre au niveau Minor (.1)
-            nextName = String.format("V%d.1", major);
-            logger.debug("Parent version '{}' implies branching at minor level.", parentName);
-        } else {
-            // Si parent est V[M].[m] ou V[M].[m].[p] -> Nouvelle branche V[M].[m].1
-            nextName = String.format("V%d.%d.1", major, minor);
-        }
-
-        logger.info("First version name for new branch '{}' determined from parent '{}': {}", newBranchName, parentName, nextName);
-        return nextName;
+        logger.debug("Source version '{}' from main. New branch starts at V{}.{}", sourceName, major, newMinor);
+        return String.format("V%d.%d", major, newMinor);
     }
 
-    private String incrementExistingVersion(String currentVersionName, String branchName) {
 
-        Matcher matcher = VERSION_NAME_PATTERN.matcher(currentVersionName);
+    private String incrementExistingVersion(String latestVersionName, String branchName) {
+
+        Matcher matcher = VERSION_NAME_PATTERN.matcher(latestVersionName);
         if (!matcher.matches()) {
-            logger.error("Cannot increment version: Could not parse existing version name '{}' on branch '{}'.", currentVersionName, branchName);
-            throw new IllegalStateException("Invalid version name format found in database: " + currentVersionName);
+            logger.error("Cannot parse existing version name '{}' (expected V.M.m format). Fallback.", latestVersionName);
+            return latestVersionName + "-next"; // Fallback
         }
 
         int major = Integer.parseInt(matcher.group(1));
-        // group(2) (Minor) et group(3) (Patch) peuvent être null s'ils ne sont pas présents
-        int minor = matcher.group(2) != null ? Integer.parseInt(matcher.group(2)) : 0;
-        int patch = matcher.group(3) != null ? Integer.parseInt(matcher.group(3)) : 0;
+        int minor = (matcher.group(2) != null) ? Integer.parseInt(matcher.group(2)) : 0; // Minor=0 si absent
+
+        logger.trace("Parsed version '{}': Major={}, Minor={}", latestVersionName, major, minor);
 
         if (MAIN_BRANCH_NAME.equalsIgnoreCase(branchName)) {
-            // Logique pour la branche "main" -> Incrémente Major, reset Minor/Patch à 0
-            int nextMajor = major + 1;
-            String nextName = String.format("V%d.0", nextMajor);
-            logger.info("Incrementing version on '{}' branch: '{}' -> '{}'", branchName, currentVersionName, nextName);
-            return nextName;
+            // Incrémente MAJEUR, reset Minor
+            major++;
+            minor = 0;
+            logger.debug("Incrementing MAJOR on '{}' branch to V{}.0", branchName, major);
+            return String.format("V%d.0", major);
         } else {
-            // Logique pour les branches "feature" -> Incrémente le dernier niveau présent
-            if (matcher.group(3) != null) {
-                // Si Patch existe (V.M.P) -> Incrémente Patch
-                int nextPatch = patch + 1;
-                String nextName = String.format("V%d.%d.%d", major, minor, nextPatch);
-                logger.info("Incrementing patch version on '{}' branch: '{}' -> '{}'", branchName, currentVersionName, nextName);
-                return nextName;
-            } else if (matcher.group(2) != null) {
-                // Si Minor existe mais pas Patch (V.M) -> Incrémente Minor
-                int nextMinor = minor + 1;
-                String nextName = String.format("V%d.%d", major, nextMinor);
-                logger.info("Incrementing minor version on '{}' branch: '{}' -> '{}'", branchName, currentVersionName, nextName);
-                return nextName;
-            } else {
-                // Si Seul Major existe (V) - Ne devrait pas arriver sur une branche non-main selon notre logique, mais sécurité
-                logger.warn("Found only major version '{}' on non-main branch '{}'. Incrementing minor.", currentVersionName, branchName);
-                String nextName = String.format("V%d.1", major); // V1 -> V1.1
-                return nextName;
-            }
+            // Incrémente MINOR
+            minor++;
+            logger.debug("Incrementing MINOR on '{}' branch to V{}.{}", branchName, major, minor);
+            return String.format("V%d.%d", major, minor);
         }
     }
 
 
+
+
+    /**
+     * Calcule le nom potentiel de la PROCHAINE version si une nouvelle était créée sur la branche spécifiée.
+     * ATTENTION: Fonctionne correctement SEULEMENT s'il existe déjà une version sur cette branche.
+     * Si c'est la première version sur la branche, le calcul est APPROXIMATIF car la version parente
+     * n'est pas connue par cette méthode.
+     *
+     * @param branchId L'ID de la branche pour laquelle calculer le nom potentiel.
+     * @return Le nom de version potentiel calculé (peut être un placeholder si c'est la première version).
+     */
     @Override
-    @Transactional
     public String calculatePotentialNameForBranch(Long branchId) {
-        logger.debug("Calculating potential next version name for branch ID: {}", branchId);
-        Branch targetBranch = branchRepository.findById(branchId)
-                .orElseThrow(() -> new EntityNotFoundException("Branch not found with id: " + branchId));
+        logger.debug("Calculating potential next V.M.m name for branch ID: {}", branchId);
 
-        Optional<Version> latestVersionOnTargetBranch = versionRepository.findTopByBranchOrderByIdDesc(targetBranch);
+        Branch branch = branchRepository.findById(branchId)
+                .orElseThrow(() -> new EntityNotFoundException("Branch not found: " + branchId));
 
-        // Appel la logique principale mais sans parentVersionId explicite,
-        // car on est sur une branche *existante* dont on cherche la suite.
-        return this.generateNextVersionName(targetBranch, null, latestVersionOnTargetBranch);  }
+        Optional<Version> latestVersionOpt = versionRepository.findTopByBranchOrderByNameDesc(branch);
+
+        if (latestVersionOpt.isPresent()) {
+            // CAS OK: Incrémente la dernière V.M.m trouvée sur cette branche
+            Version latestVersion = latestVersionOpt.get();
+            logger.debug("Found latest V.M.m '{}' on branch '{}'. Calculating next.", latestVersion.getName(), branch.getName());
+            return incrementExistingVersion(latestVersion.getName(), branch.getName()); // Retourne V[M].0 ou V[M].[m+1]
+        } else {
+            // CAS ELSE: Première version -> on doit deviner le parent sur 'main'
+            logger.debug("No existing V.M.m on branch '{}'. Need to determine potential first name (V[M].1).", branch.getName());
+
+            // --- Approche Heuristique: Trouver la DERNIÈRE V[M].0 sur 'main' ---
+            // Besoin d'une méthode repo: findLatestVersionOnMainBranch() ou similaire
+            // Qui trouve la plus haute V[M].0. Doit trier !
+            Optional<Version> latestMainVersionOpt = versionRepository.findLatestVersionOnMainBranch();
+            if (latestMainVersionOpt.isPresent()) {
+                Version potentialMainParent = latestMainVersionOpt.get();
+                logger.debug("Using latest main version '{}' as potential parent for potential first name on branch '{}'.",
+                        potentialMainParent.getName(), branch.getName());
+                // Appeler le helper qui attend un parent main V[M].0
+                try {
+                    return generateFirstVersionNameForNewBranch(potentialMainParent); // Devrait retourner V[M].1
+                } catch (IllegalArgumentException e) {
+                    // Si le dernier sur main n'est pas V.X.0 (ne devrait pas arriver)
+                    logger.error("Latest version on main ('{}') is not in V[M].0 format. Cannot calculate potential name. Error: {}",
+                            potentialMainParent.getName(), e.getMessage());
+                    return "V?.?-error";
+                }
+            } else {
+                // Pas de version sur 'main' du tout ? Très peu probable sauf début projet.
+                logger.warn("No version found on main branch at all. Assuming first potential version is V1.1 for branch '{}'.", branch.getName());
+                return "V1.1";
+            }
+            // Toujours PAS IDEAL: Si l'utilisateur crée depuis une V2.0 alors que V3.0 existe,
+            // le potentiel calculé ici sera basé sur V3.0. L'API avec parentId explicite reste la meilleure solution.
+        }
+
+    }
+    @Override
+    public String generateFirstEverVersionName() {
+        final String firstVersionName = "V1.0";
+        logger.info("Generating the first ever version name: {}", firstVersionName);
+        return firstVersionName;
+    }
 
 }

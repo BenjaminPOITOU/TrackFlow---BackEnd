@@ -22,8 +22,8 @@ public final class Constants {
     public static final int RECENT_PROJECT_COUNT = 10;
     public static final int RECENT_COMPOSITION_COUNT = 10;
 
-    public static final Pattern VERSION_NAME_PATTERN = Pattern.compile("^V(\\d+)(?:\\.(\\d+))?(?:\\.(\\d+))?$");
-
+    public static final Pattern VERSION_NAME_PATTERN = Pattern.compile("^V(\\d+)(?:\\.(\\d+))?$");
+    public static final Pattern VERSION_M_M_PATTERN = Pattern.compile("^V(\\d+)\\.(\\d+)$");
     // ^       : Doit commencer exactement au début du texte.
     // V       : Doit y avoir la lettre V majuscule.
     // (\\d+)  : Doit suivre un groupe (les parenthèses '()') composé de :

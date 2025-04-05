@@ -49,9 +49,9 @@ public class BranchServiceImpl implements BranchService {
     }
 
     @Override
-    public Branch findOrCreateBranch(Composition composition, Long branchId, String newBranchName, Long parentBranchId) {
+    public Branch findOrCreateBranch(Composition composition, Long branchId, String newBranchName, Long parentBranchId, String branchDescription) {
         Branch branch;
-        Long compositionId = composition.getId(); // Pour les logs
+        Long compositionId = composition.getId();
 
         if (branchId != null) {
             logger.debug("Finding existing branch with ID: {} for Composition {}", branchId, compositionId);
@@ -72,6 +72,7 @@ public class BranchServiceImpl implements BranchService {
             branch = new Branch();
             branch.setName(newBranchName);
             branch.setComposition(composition);
+            branch.setDescription(branchDescription);
 
             // Valider et lier la branche parente si nécessaire
             if (parentBranchId != null) {

@@ -1,6 +1,8 @@
 package com.eql.cda.track.flow.dto.versionDto;
 
-import com.eql.cda.track.flow.dto.annotationDto.AnnotationViewDto;
+
+
+import com.eql.cda.track.flow.dto.annotationDto.AnnotationResponseDto;
 
 import java.util.List;
 
@@ -15,12 +17,13 @@ public class VersionDetailDto {
     private String key;
     private Integer durationSeconds;
     private List<VersionInstrumentDto> versionInstruments;
-    private List<AnnotationViewDto> annotations;
+    private List<AnnotationResponseDto> annotationResponseDtoList;
+
 
     public VersionDetailDto() {
     }
 
-    public VersionDetailDto(Long versionId, String versionName, String branchName, String description, String audioFileUrl, String bpm, String key, Integer durationSeconds, List<VersionInstrumentDto> versionInstruments, List<AnnotationViewDto> annotations) {
+    public VersionDetailDto(Long versionId, String versionName, String branchName, String description, String audioFileUrl, String bpm, String key, Integer durationSeconds, List<VersionInstrumentDto> versionInstruments, List<AnnotationResponseDto> annotationResponseDtoList) {
         this.versionId = versionId;
         this.versionName = versionName;
         this.branchName = branchName;
@@ -30,7 +33,7 @@ public class VersionDetailDto {
         this.key = key;
         this.durationSeconds = durationSeconds;
         this.versionInstruments = versionInstruments;
-        this.annotations = annotations;
+        this.annotationResponseDtoList = annotationResponseDtoList;
     }
 
     public String getVersionName() {
@@ -98,10 +101,10 @@ public class VersionDetailDto {
         this.versionInstruments = versionInstruments;
     }
 
-    public List<AnnotationViewDto> getAnnotations() {
-        return annotations;
+    public List<AnnotationResponseDto> getAnnotationResponseDtoList() {
+        return annotationResponseDtoList;
     }
-    public void setAnnotations(List<AnnotationViewDto> annotations) {
-        this.annotations = annotations;
+    public void setAnnotationResponseDtoList(List<AnnotationResponseDto> annotationResponseDtoList) {
+        this.annotationResponseDtoList = annotationResponseDtoList;
     }
 }
