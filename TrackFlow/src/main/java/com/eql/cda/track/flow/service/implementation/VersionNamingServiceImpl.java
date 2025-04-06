@@ -1,15 +1,14 @@
 package com.eql.cda.track.flow.service.implementation;
 
 import com.eql.cda.track.flow.entity.Branch;
+import com.eql.cda.track.flow.entity.Composition;
 import com.eql.cda.track.flow.entity.Version;
 import com.eql.cda.track.flow.repository.BranchRepository;
 import com.eql.cda.track.flow.repository.VersionRepository;
 import com.eql.cda.track.flow.service.VersionNamingService;
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -174,6 +173,60 @@ public class VersionNamingServiceImpl implements VersionNamingService {
         }
 
     }
+
+    @Override
+    public String generateFirstVersionNameForBranch(Branch targetBranch) {
+        logger.debug("Generating the very first version name specifically for target branch '{}' (ID: {})",
+                targetBranch.getName(), targetBranch.getId());
+
+        // CAS 1: La branche cible EST la branche 'main'
+        if (MAIN_BRANCH_NAME.equalsIgnoreCase(targetBranch.getName())) {
+            logger.debug("Target branch is 'main'. First version name is V1.0.");
+            // La toute première version est toujours V1.0
+            return generateFirstEverVersionName(); // Utilise ta méthode existante
+        }
+
+        // CAS 2: La branche cible N'EST PAS 'main'
+        // On doit trouver la dernière version sur la branche 'main' de la *même composition*
+        // pour déterminer le nom de base V[M].1
+        Composition composition = targetBranch.getComposition();
+        if (composition == null) {
+            // Sécurité: une branche doit toujours avoir une composition
+            logger.error("Target branch ID {} has no associated composition! Cannot determine first version name.", targetBranch.getId());
+            // Il vaut mieux lever une exception ici car c'est un état anormal
+            throw new IllegalStateException("Branch " + targetBranch.getId() + " has no composition associated.");
+        }
+        Long compositionId = composition.getId();
+
+        // Trouve la dernière version (la plus haute V[M].0) sur la branche 'main' de cette composition
+        // Utilise la méthode du repository qui prend l'ID de la composition.
+        Optional<Version> latestMainVersionOpt = versionRepository.findLatestVersionOnMainBranch(compositionId);
+
+        if (latestMainVersionOpt.isPresent()) {
+            Version latestMainVersion = latestMainVersionOpt.get();
+            logger.debug("Found latest version '{}' on main branch for composition {}. Using it as base for first name on target branch '{}'.",
+                    latestMainVersion.getName(), compositionId, targetBranch.getName());
+            try {
+                // Utilise le helper privé qui s'attend à une version V[M].0 de main pour générer V[M].1
+                return generateFirstVersionNameForNewBranch(latestMainVersion);
+            } catch (IllegalArgumentException e) {
+                // Si la dernière version sur main n'a pas le format attendu V[M].0 (ne devrait pas arriver dans un flux normal)
+                logger.error("Latest version on main ('{}') for composition {} is not in V[M].0 format. Cannot generate first name for branch {}. Error: {}",
+                        latestMainVersion.getName(), compositionId, targetBranch.getName(), e.getMessage());
+                // Propager l'erreur car c'est inattendu
+                throw new IllegalArgumentException("Cannot generate first version name for branch " + targetBranch.getName() + ": Latest main version '" + latestMainVersion.getName() + "' is not in the expected V[M].0 format.", e);
+            }
+        } else {
+            // Pas de version trouvée sur 'main' pour cette composition.
+            // Cela ne devrait pas arriver car on ne peut (selon nos règles) créer une branche non-'main'
+            // que s'il existe au moins V1.0 sur 'main'.
+            logger.error("CRITICAL: No version found on the main branch for composition {} while trying to generate the first name for non-main branch '{}'. This indicates an inconsistent state or rule violation.",
+                    compositionId, targetBranch.getName());
+            // C'est une erreur grave, lever une exception pour signaler le problème.
+            throw new RuntimeException("Cannot generate first version name for branch " + targetBranch.getName() + ": No version found on the corresponding main branch for composition " + compositionId + ". Branch creation rules might have been violated.");
+        }
+    }
+
     @Override
     public String generateFirstEverVersionName() {
         final String firstVersionName = "V1.0";
@@ -181,4 +234,9 @@ public class VersionNamingServiceImpl implements VersionNamingService {
         return firstVersionName;
     }
 
+
+
 }
+
+
+

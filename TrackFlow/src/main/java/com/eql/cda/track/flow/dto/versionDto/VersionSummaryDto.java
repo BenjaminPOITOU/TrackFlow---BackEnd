@@ -2,7 +2,7 @@ package com.eql.cda.track.flow.dto.versionDto;
 
 import com.eql.cda.track.flow.entity.Branch;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public class VersionSummaryDto {
 
@@ -10,13 +10,13 @@ public class VersionSummaryDto {
     private String versionName;
     private String branchName;
    // private String author;
-    private LocalDateTime createdDate;
+    private Instant createdDate;
 
 
     public VersionSummaryDto() {
     }
 
-    public VersionSummaryDto(Long versionId, String versionName, String branchName, LocalDateTime createdDate) {
+    public VersionSummaryDto(Long versionId, String versionName, String branchName, Instant createdDate) {
         this.versionId = versionId;
         this.versionName = versionName;
         this.branchName = branchName;
@@ -52,10 +52,10 @@ public class VersionSummaryDto {
     //    this.author = author;
    // }
 
-    public LocalDateTime getCreatedDate() {
+    public Instant getCreatedDate() {
         return createdDate;
     }
-    public void setCreatedDate(LocalDateTime createdDate) {
+    public void setCreatedDate(Instant createdDate) {
         this.createdDate = createdDate;
     }
 }

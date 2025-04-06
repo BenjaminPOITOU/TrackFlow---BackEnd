@@ -49,7 +49,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.time.Instant;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -64,7 +64,7 @@ import java.util.stream.Collectors;
 
 import static com.eql.cda.track.flow.service.implementation.VersionNamingServiceImpl.MAIN_BRANCH_NAME;
 import static com.eql.cda.track.flow.validation.Constants.VERSION_M_M_PATTERN;
-import static com.eql.cda.track.flow.validation.Constants.VERSION_NAME_PATTERN;
+
 
 
 @Service
@@ -174,120 +174,120 @@ public class VersionServiceImpl implements VersionService {
     }
 
     @Override
-    public NewVersionModalDto prepareNewVersionModalData(Long compositionId, Optional<Long> basedOnVersionIdOpt) {
-        logger.info("Preparing data for new version modal for composition ID: {}. Based on version ID: {}",
-                compositionId, basedOnVersionIdOpt.map(String::valueOf).orElse("None"));
+    @Transactional
+    public NewVersionModalDto prepareNewVersionModalDataForBranch(Long compositionId, Long targetBranchId) {
+        logger.info("Preparing data for new version modal for composition ID: {} targeting branch ID: {}",
+                compositionId, targetBranchId);
 
         // 1. Trouver la composition (obligatoire)
-        Composition composition = compositionRepository.findById(compositionId)
-                .orElseThrow(() -> new EntityNotFoundException("Composition not found with id: " + compositionId));
+        //    (Pas strictement nécessaire si on valide via la branche, mais bon pour contexte)
+        if (!compositionRepository.existsById(compositionId)) { // Plus léger que findById
+            throw new EntityNotFoundException("Composition not found with id: " + compositionId);
+        }
 
-        // 2. Vérifier si on peut créer une nouvelle branche (basé sur la composition)
+        // 2. Trouver la branche cible (obligatoire) et valider son appartenance
+        Branch targetBranch = branchRepository.findById(targetBranchId)
+                .orElseThrow(() -> new EntityNotFoundException("Target branch not found with id: " + targetBranchId));
+        if (!targetBranch.getComposition().getId().equals(compositionId)) {
+            throw new IllegalArgumentException("Target branch " + targetBranchId + " does not belong to composition " + compositionId);
+        }
+        logger.debug("Target branch found: Name='{}', ID={}", targetBranch.getName(), targetBranch.getId());
+
+        // 3. Trouver la dernière version sur la BRANCHE CIBLE
+        Optional<Version> latestVersionOnTargetBranchOpt = versionRepository.findTopByBranchOrderByNameDesc(targetBranch);
+
+        // --- Déclarations des variables pour le DTO ---
+        String potentialNextVersionName;
+        List<VersionInstrumentPreDefined> previousVersionInstrumentsDto = Collections.emptyList();
+        List<AnnotationResponseDto> previousVersionAnnotationsDto = Collections.emptyList();
+        Long parentVersionIdForModal = null; // L'ID de la DERNIÈRE version sur la branche cible
+
+        // 4. Traitement basé sur l'existence d'une version sur la branche cible
+        if (latestVersionOnTargetBranchOpt.isPresent()) {
+            // --- Cas où il y a déjà une version sur la branche cible ---
+            Version lastVersionOnBranch = latestVersionOnTargetBranchOpt.get();
+            logger.debug("Last version found on target branch {}: '{}' (ID={})", targetBranch.getId(), lastVersionOnBranch.getName(), lastVersionOnBranch.getId());
+
+            parentVersionIdForModal = lastVersionOnBranch.getId(); // Le "parent" pour le DTO est la dernière version trouvée
+
+            // Récupérer instruments de cette dernière version
+            List<VersionInstrument> previousInstrumentsEntities = versionInstrumentRepository.findByVersion(lastVersionOnBranch);
+            previousVersionInstrumentsDto = previousInstrumentsEntities.stream()
+                    .map(VersionInstrument::getInstrument)
+                    .distinct()
+                    .collect(Collectors.toList());
+            logger.debug("Found {} distinct instruments in last version on branch", previousVersionInstrumentsDto.size());
+
+            // Récupérer annotations de cette dernière version
+            List<Annotation> previousAnnotations = annotationRepository.findByVersionId(lastVersionOnBranch.getId());
+            previousVersionAnnotationsDto = annotationMapper.toAnnotationResponseDtoList(previousAnnotations);
+            logger.debug("Found {} annotations in last version on branch", previousVersionAnnotationsDto.size());
+
+            // Calculer le nom potentiel basé sur cette dernière version et la branche cible
+            try {
+                potentialNextVersionName = versionNamingService.generateNextVersionName(lastVersionOnBranch, targetBranch);
+                logger.debug("Calculated potential next version name: {}", potentialNextVersionName);
+            } catch (Exception e) {
+                logger.error("Could not calculate potential next version name for branch {}: {}", targetBranch.getId(), e.getMessage(), e);
+                potentialNextVersionName = "V?.?-error";
+            }
+
+        } else {
+            // --- Cas où AUCUNE version n'existe encore sur la branche cible ---
+            logger.debug("No existing version found on target branch {}. Preparing for first version on this branch.", targetBranch.getId());
+
+            // parentVersionIdForModal reste null
+            // previousVersion... DTOs restent vides
+
+            // Calculer le nom potentiel (V1.0 si 'main', V[M].1 si autre branche créée depuis V[M].0)
+            try {
+                // Il faut une logique dans le naming service qui peut déterminer le premier nom
+                // basé uniquement sur la branche (et potentiellement son parent si ce n'est pas 'main').
+                // Si c'est 'main', ce sera V1.0. Si c'est une branche créée depuis V2.0, ce sera V2.1.
+                // Supposons que generateFirstVersionNameForBranch existe et fait cela.
+                potentialNextVersionName = versionNamingService.generateFirstVersionNameForBranch(targetBranch);
+                logger.debug("Calculated potential first version name for branch {}: {}", targetBranch.getId(), potentialNextVersionName);
+            } catch (Exception e) {
+                logger.error("Could not calculate potential first version name for branch {}: {}", targetBranch.getId(), e.getMessage(), e);
+                potentialNextVersionName = "V?.?-error";
+            }
+        }
+
+        // 5. Vérifier si on peut créer une nouvelle branche (inchangé, toujours basé sur 'main')
         boolean canCreateNewBranch = versionRepository.existsByBranch_Composition_IdAndBranch_Name(
                 compositionId,
                 MAIN_BRANCH_NAME
         );
         logger.debug("Can create new branch for composition {}? {}", compositionId, canCreateNewBranch);
 
-        // 3. Lister les branches disponibles pour cette composition
+        // 6. Lister toutes les branches disponibles pour cette composition (inchangé)
         List<Branch> allBranches = branchRepository.findByCompositionIdOrderByNameAsc(compositionId);
         List<BranchSummaryDto> availableBranchesDto = allBranches.stream()
                 .map(branch -> new BranchSummaryDto(branch.getId(), branch.getName(), branch.getDescription()))
                 .collect(Collectors.toList());
 
 
-        String potentialNextVersionName;
-        List<VersionInstrumentPreDefined> previousVersionInstrumentsDto = Collections.emptyList();
-        List<AnnotationResponseDto> previousVersionAnnotationsDto = Collections.emptyList();
-        Long previousVersionIdForModal = null; // L'ID à afficher comme "basé sur"
-        Long currentBranchIdForModal = null;
-        String currentBranchNameForModal = null;
-
-
-        if (basedOnVersionIdOpt.isPresent()) {
-            // --- Cas où on se base sur une version précédente ---
-            Long basedOnVersionId = basedOnVersionIdOpt.get();
-            logger.debug("Fetching details from basedOnVersionId: {}", basedOnVersionId);
-
-            Version previousVersion = versionRepository.findById(basedOnVersionId)
-                    .orElseThrow(() -> new EntityNotFoundException("Based on version not found with id: " + basedOnVersionId));
-
-            // Validation : la version parente appartient-elle bien à la composition ?
-            if (!previousVersion.getBranch().getComposition().getId().equals(compositionId)) {
-                throw new IllegalArgumentException("Version " + basedOnVersionId + " does not belong to composition " + compositionId);
-            }
-
-            Branch previousBranch = previousVersion.getBranch();
-            previousVersionIdForModal = previousVersion.getId();
-            currentBranchIdForModal = previousBranch.getId();
-            currentBranchNameForModal = previousBranch.getName();
-
-
-            // Récupérer instruments de la version précédente
-            List<VersionInstrument> previousInstrumentsEntities = versionInstrumentRepository.findByVersion(previousVersion);
-            previousVersionInstrumentsDto = previousInstrumentsEntities.stream()
-                    .map(VersionInstrument::getInstrument)
-                    .distinct()
-                    .collect(Collectors.toList());
-            logger.debug("Found {} distinct instruments in previous version {}", previousVersionInstrumentsDto.size(), basedOnVersionId);
-
-            // Récupérer annotations de la version précédente
-            List<Annotation> previousAnnotations = annotationRepository.findByVersionId(basedOnVersionId);
-            previousVersionAnnotationsDto = annotationMapper.toAnnotationResponseDtoList(previousAnnotations);
-            logger.debug("Found {} annotations in previous version {}", previousVersionAnnotationsDto.size(), basedOnVersionId);
-
-            // Calculer le nom potentiel basé sur la version précédente et sa branche
-            try {
-                potentialNextVersionName = versionNamingService.generateNextVersionName(previousVersion, previousBranch);
-                logger.debug("Calculated potential next version name based on previous version {}: {}", basedOnVersionId, potentialNextVersionName);
-            } catch (Exception e) {
-                logger.error("Could not calculate potential next version name based on version {}: {}", basedOnVersionId, e.getMessage(), e);
-                potentialNextVersionName = "V?.?-error";
-            }
-
-        } else {
-
-            logger.debug("No basedOnVersionId provided. Assuming first version scenario or targeting 'main' without explicit parent.");
-
-            try {
-                // Tentative : trouver la dernière version sur main, si elle existe. Sinon -> V1.0
-                Optional<Branch> mainBranchOpt = branchRepository.findByCompositionIdAndName(compositionId, MAIN_BRANCH_NAME);
-                if(mainBranchOpt.isPresent()) {
-                    // Trouver la dernière version sur la branche main
-                    Optional<Version> latestOnMainOpt = versionRepository.findTopByBranchOrderByNameDesc(mainBranchOpt.get());
-                    if (latestOnMainOpt.isPresent()) {
-                        potentialNextVersionName = versionNamingService.generateNextVersionName(latestOnMainOpt.get(), mainBranchOpt.get());
-                    } else {
-                        potentialNextVersionName = versionNamingService.generateFirstEverVersionName();
-                    }
-                } else {
-
-                    logger.warn("Main branch not found for composition {}, defaulting potential name to V1.0", compositionId);
-                    potentialNextVersionName = versionNamingService.generateFirstEverVersionName();
-                }
-                logger.debug("Calculated potential next version name (first version scenario): {}", potentialNextVersionName);
-            } catch (Exception e) {
-                logger.error("Could not calculate potential first version name for composition {}: {}", compositionId, e.getMessage(), e);
-                potentialNextVersionName = "V1.0-error";
-            }
-
-        }
-
-        // 8. Construire DTO final
+        // 7. Construire DTO final
         NewVersionModalDto modalDto = new NewVersionModalDto();
-        modalDto.setParentVersionId(previousVersionIdForModal); // Peut être null si 1ere version
-        modalDto.setCurrentBranchId(currentBranchIdForModal);   // Peut être null si 1ere version
-        modalDto.setCurrentBranchName(currentBranchNameForModal); // Peut être null si 1ere version
+        // 'parentVersionId' contient l'ID de la dernière version sur la branche cible (ou null)
+        modalDto.setParentVersionId(parentVersionIdForModal);
+        // 'currentBranchId/Name' doivent refléter la BRANCHE CIBLE demandée
+        modalDto.setCurrentBranchId(targetBranch.getId());
+        modalDto.setCurrentBranchName(targetBranch.getName());
         modalDto.setAvailableBranches(availableBranchesDto);
         modalDto.setPotentialNextVersionName(potentialNextVersionName);
-        modalDto.setPreviousVersionInstruments(previousVersionInstrumentsDto); // Sera vide si 1ere version
-        modalDto.setPreviousVersionAnnotations(previousVersionAnnotationsDto); // Sera vide si 1ere version
+        modalDto.setPreviousVersionInstruments(previousVersionInstrumentsDto);
+        modalDto.setPreviousVersionAnnotations(previousVersionAnnotationsDto);
         modalDto.setCanCreateNewBranch(canCreateNewBranch);
 
 
-        logger.info("Successfully prepared data for new version modal (canCreateNewBranch={}).", modalDto.isCanCreateNewBranch());
+        logger.info("Successfully prepared data for new version modal (TargetBranch='{}', LastVersionOnBranchId={}, CanCreateNewBranch={}).",
+                modalDto.getCurrentBranchName(), modalDto.getParentVersionId(), modalDto.isCanCreateNewBranch());
         return modalDto;
     }
+
+    // Assure-toi que VersionNamingService a cette méthode (ou équivalent)
+
 
     @Override
     public VersionDetailDto getVersionDetailsById(Long versionId) {
@@ -430,35 +430,37 @@ public class VersionServiceImpl implements VersionService {
         String newVersionName;
         Long actualCompositionId = compositionId; // Utilise l'ID passé, sauf si écrasé par le parent
 
-        // --- Logique Différentielle ---
+
         if (dto.getParentVersionId() == null) {
             // === CAS A : TOUTE PREMIÈRE VERSION ===
             logger.info("Handling creation of the very first version for composition {}.", actualCompositionId);
 
-            // Validation spécifique : DTO cible bien la branche 'main'
-            if (dto.getBranchId() != null || (dto.getNewBranchName() != null && !MAIN_BRANCH_NAME.equalsIgnoreCase(dto.getNewBranchName()))) {
-                throw new IllegalArgumentException("The very first version must be created on the 'main' branch.");
+
+            Branch mainBranch = branchRepository.findByCompositionIdAndName(actualCompositionId, MAIN_BRANCH_NAME)
+                    .orElseThrow(() -> new IllegalStateException("Internal error: 'main' branch not found for composition {} during first version creation." ));
+
+            // Valider que le DTO cible BIEN la branche 'main' ou ne spécifie rien (implicitement main)
+            boolean targetingMainExplicitlyById = (dto.getBranchId() != null && dto.getBranchId().equals(mainBranch.getId()));
+            boolean targetingMainImplicitlyOrExplicitlyByName = (dto.getBranchId() == null && (dto.getNewBranchName() == null || MAIN_BRANCH_NAME.equalsIgnoreCase(dto.getNewBranchName())));
+
+            if (!(targetingMainExplicitlyById || targetingMainImplicitlyOrExplicitlyByName)) {
+                // Si on ne cible PAS 'main' (soit via un autre branchId, soit via un autre newBranchName)
+                logger.error("Validation failed: First version requested, but target is not the 'main' branch. branchId={}, newBranchName='{}'",
+                        dto.getBranchId(), dto.getNewBranchName());
+                throw new IllegalArgumentException("The very first version must target the 'main' branch (branchId: " + mainBranch.getId() + ").");
             }
 
-            // Validation : Vérifier que l'ID de composition passé existe
-            if (!compositionRepository.existsById(actualCompositionId)) {
-                throw new EntityNotFoundException("Composition not found: " + actualCompositionId);
-            }
-            Composition composition = compositionRepository.findById(compositionId)
-                    .orElseThrow(() -> new IllegalArgumentException("No composition with the id : {}"));
+            // Si la validation passe, on sait qu'on cible 'main'
+            targetBranch = mainBranch; // La cible est forcément 'main'
 
-            // Trouver ou créer la branche "main" pour cette composition
-            targetBranch = branchService.findOrCreateBranch(
-                    composition,
-                    null, MAIN_BRANCH_NAME, null,dto.getNewBranchDescription()
-            );
 
-            // Générer le nom V1.0
+            // Générer le nom V1.0 (inchangé)
             newVersionName = versionNamingService.generateFirstEverVersionName();
-            logger.info("Generated first ever version name: {}", newVersionName);
+            logger.info("Targeting 'main' branch (ID: {}). Generated first ever version name: {}", targetBranch.getId(), newVersionName);
 
-            // Pas d'actions sur annotations N-1
+            // Pas d'actions sur annotations N-1 (inchangé)
             logger.debug("Skipping actions on previous version annotations.");
+
 
 
         } else {
@@ -610,13 +612,6 @@ public class VersionServiceImpl implements VersionService {
     }
 
 
-
-    /**
-     * Attempts to delete the GCS file associated with the given version.
-     * Logs warnings or errors but does not throw by default if GCS deletion fails.
-     *
-     * @param versionToDelete The version whose associated file should be deleted.
-     */
     private void deleteAssociatedGcsFile(Version versionToDelete) {
         String audioFileUrl = versionToDelete.getAudioFileUrl();
         Long versionId = versionToDelete.getId(); // For logging
@@ -655,94 +650,6 @@ public class VersionServiceImpl implements VersionService {
             // throw new RuntimeException("GCS file deletion failed for Version " + versionId, e);
         }
     }
-
-    private void validateVersionCreateDto(VersionCreateDto dto) {
-
-        logger.debug("Validating VersionCreateDto...");
-        if (dto.getUniqueFileName() == null || dto.getUniqueFileName().isBlank()) {
-            logger.error("Validation failed: Audio file URL is missing.");
-            throw new IllegalArgumentException("Audio file URL is required to create a version.");
-        }
-        if (dto.getBranchId() == null && (dto.getNewBranchName() == null || dto.getNewBranchName().isBlank())) {
-            logger.error("Validation failed: Either branchId or newBranchName must be provided.");
-            throw new IllegalArgumentException("Either branchId or newBranchName must be provided.");
-        }
-        if (dto.getBranchId() != null && (dto.getNewBranchName() != null && !dto.getNewBranchName().isBlank())) {
-            logger.error("Validation failed: Cannot provide both branchId and newBranchName.");
-            throw new IllegalArgumentException("Cannot provide both branchId and newBranchName.");
-        }
-        // Validation modifiée : ParentVersionId est nécessaire SEULEMENT si c'est une NOUVELLE branche ET qu'elle n'est pas la racine absolue (implicitement V1.0)
-        // La logique de nommage gère le cas où parentVersionId est null pour V1.0.
-        // Mais si on spécifie une nouvelle branche *et* qu'on s'attend à un nom autre que V1.0, le parent est nécessaire.
-        if (dto.getNewBranchName() != null && !dto.getNewBranchName().isBlank() && dto.getParentVersionId() == null) {
-            // On pourrait affiner cette règle. Si la branche est vraiment la PREMIÈRE de la compo, V1.0 est ok sans parentId.
-            // Pour l'instant, on garde : nouvelle branche -> parentId requis pour Vmajor.1
-            logger.warn("Validation warning (may be acceptable for first-ever branch): parentVersionId is null while creating a new branch (newBranchName is set). Version name might default to V1.0 if no other versions exist.");
-            // Retiré l'exception pour plus de flexibilité, la logique de nommage gère ça.
-            // throw new IllegalArgumentException("Parent Version ID is required when creating a new branch based on an existing version line.");
-        }
-        logger.debug("VersionCreateDto validation passed.");
-    }
-
-    private Comparator<Version> versionNameComparator() {
-        return Comparator.comparing(Version::getName, (name1, name2) -> {
-            Matcher matcher1 = VERSION_NAME_PATTERN.matcher(name1 != null ? name1 : "");
-            Matcher matcher2 = VERSION_NAME_PATTERN.matcher(name2 != null ? name2 : "");
-
-            if (matcher1.matches() && matcher2.matches()) {
-                int major1 = Integer.parseInt(matcher1.group(1));
-                int minor1 = Integer.parseInt(matcher1.group(2));
-                int major2 = Integer.parseInt(matcher2.group(1));
-                int minor2 = Integer.parseInt(matcher2.group(2));
-
-                if (major1 != major2) {
-                    return Integer.compare(major1, major2); // Compare les majeurs
-                } else {
-                    return Integer.compare(minor1, minor2); // Si majeurs égaux, compare les mineurs
-                }
-            } else {
-                // Gérer les noms non valides (les mettre à la fin/début ou comparaison simple)
-                return String.CASE_INSENSITIVE_ORDER.compare(name1, name2);
-            }
-        });
-    }
-    private Version initializeNewVersionEntity(Branch branch, String versionName) {
-        // ... (Logique inchangée) ...
-        logger.debug("Initializing new Version entity for branch {} with name {}", branch.getId(), versionName);
-        Version newVersion = new Version();
-        newVersion.setBranch(branch);
-        newVersion.setName(versionName);
-        // Assurez-vous que les collections sont initialisées si @OneToMany(cascade=...) est utilisé
-        newVersion.setInstruments(new HashSet<>()); // Utiliser Set si la relation est un Set
-        newVersion.setAnnotations(new ArrayList<>()); // Utiliser List si la relation est une List
-        newVersion.setMetadata(new HashMap<>()); // Initialiser metadata
-        newVersion.setCreatedDate(LocalDateTime.now()); // Explicitement pour trace, même si JPA Auditing peut le faire
-        return newVersion;
-    }
-
-    private void populateVersionDetailsFromDto(Version version, VersionCreateDto dto) {
-
-        logger.debug("Populating details for version '{}' from DTO...", version.getName());
-
-        version.setAudioFileUrl(dto.getUniqueFileName());
-        version.setDurationSeconds(dto.getDurationSeconds());
-        version.setKey(dto.getKey());
-        // Attention à la source BPM (AudioUploadResponse ou VersionCreateDto ?)
-        // Ici on utilise VersionCreateDto, assure-toi que c'est la source voulue.
-        if (dto.getBpm() != null && !dto.getBpm().isBlank()) {
-            try {
-                version.setBpm(dto.getBpm().trim()); // Supposant que BPM est String dans l'entité aussi
-            } catch (NumberFormatException e) {
-                logger.warn("Could not parse BPM value '{}' from DTO for version {}. Setting BPM to null.", dto.getBpm(), version.getName());
-                version.setBpm(null);
-            }
-        } else {
-            version.setBpm(null);
-        }
-        version.setMetadata(dto.getMetadata() != null ? new HashMap<>(dto.getMetadata()) : new HashMap<>()); // Copie défensive + init
-        logger.debug("Version details populated.");
-    }
-
     private void processAndAssociateInstruments(Version newVersion, Set<VersionInstrumentPreDefined> instrumentsFromDto) {
 
         logger.debug("Populating instruments for new version '{}' based solely on DTO input.", newVersion.getName());
@@ -862,7 +769,7 @@ public class VersionServiceImpl implements VersionService {
                 // Si @SQLDelete("UPDATE annotations SET supression_date = NOW() WHERE id = ?") est sur l'entité:
                 annotationRepository.delete(ann); // Hibernate intercepte et fait l'UPDATE
                 // Sinon, manuellement:
-                // ann.setSupressionDate(LocalDateTime.now());
+                // ann.setSupressionDate(Instant.now());
                 // annotationRepository.save(ann);
             });
             // annotationRepository.deleteAll(annotationsToDelete); // Appel explicite si @SQLDelete est utilisé

@@ -19,7 +19,7 @@ import jakarta.persistence.Table;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -52,9 +52,9 @@ public class Version {
 
     @Column(nullable = true)
     @CreatedDate
-    private LocalDateTime createdDate;
-    private LocalDateTime supressionDate;
-    private LocalDateTime definitivSupressionDate;
+    private Instant createdDate;
+    private Instant supressionDate;
+    private Instant definitivSupressionDate;
     private Long parentVersionId;
     private Long mergedSourceId;
 
@@ -94,7 +94,7 @@ public class Version {
     public Version() {
     }
 
-    public Version(Long id, String name, String author, String bpm, String key, Integer durationSeconds,String audioFileUrl, Map<String, String> metadata, LocalDateTime createdDate, LocalDateTime supressionDate, LocalDateTime definitivSupressionDate, Long parentVersionId, Long mergedSourceId, Branch branch, List<PlaylistVersion> playlistVersions, List<Annotation> annotations, Set<Access> accesses) {
+    public Version(Long id, String name, String author, String bpm, String key, Integer durationSeconds,String audioFileUrl, Map<String, String> metadata, Instant createdDate, Instant supressionDate, Instant definitivSupressionDate, Long parentVersionId, Long mergedSourceId, Branch branch, List<PlaylistVersion> playlistVersions, List<Annotation> annotations, Set<Access> accesses) {
         this.id = id;
         this.name = name;
         this.author = author;
@@ -142,24 +142,24 @@ public class Version {
         this.metadata = metadata;
     }
 
-    public LocalDateTime getCreatedDate() {
+    public Instant getCreatedDate() {
         return createdDate;
     }
-    public void setCreatedDate(LocalDateTime createdDate) {
+    public void setCreatedDate(Instant createdDate) {
         this.createdDate = createdDate;
     }
 
-    public LocalDateTime getSupressionDate() {
+    public Instant getSupressionDate() {
         return supressionDate;
     }
-    public void setSupressionDate(LocalDateTime supressionDate) {
+    public void setSupressionDate(Instant supressionDate) {
         this.supressionDate = supressionDate;
     }
 
-    public LocalDateTime getDefinitivSupressionDate() {
+    public Instant getDefinitivSupressionDate() {
         return definitivSupressionDate;
     }
-    public void setDefinitivSupressionDate(LocalDateTime definitivSupressionDate) {
+    public void setDefinitivSupressionDate(Instant definitivSupressionDate) {
         this.definitivSupressionDate = definitivSupressionDate;
     }
 

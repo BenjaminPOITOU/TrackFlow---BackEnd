@@ -1,7 +1,7 @@
 package com.eql.cda.track.flow.dto.compositionDto;
 
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 public class CompositionSummaryDto {
@@ -11,12 +11,12 @@ public class CompositionSummaryDto {
     private Integer totalBranches;
     private Integer totalVersions;
     private List<String> subGenders;
-    private LocalDateTime lastUpdateDate;
+    private Instant lastUpdateDate;
 
     public CompositionSummaryDto() {
     }
 
-    public CompositionSummaryDto(Long id, String title, Integer totalBranches, Integer totalVersions, List<String> subGenders, LocalDateTime lastUpdateDate) {
+    public CompositionSummaryDto(Long id, String title, Integer totalBranches, Integer totalVersions, List<String> subGenders, Instant lastUpdateDate) {
         this.id = id;
         this.title = title;
         this.totalBranches = totalBranches;
@@ -53,10 +53,10 @@ public class CompositionSummaryDto {
         this.subGenders = subGenders;
     }
 
-    public LocalDateTime getLastUpdateDate() {
+    public Instant getLastUpdateDate() {
         return lastUpdateDate;
     }
-    public void setLastUpdateDate(LocalDateTime lastUpdateDate) {
+    public void setLastUpdateDate(Instant lastUpdateDate) {
         this.lastUpdateDate = lastUpdateDate;
     }
 

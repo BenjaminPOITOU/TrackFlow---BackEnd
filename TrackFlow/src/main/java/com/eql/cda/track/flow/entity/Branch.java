@@ -15,7 +15,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Set;
 
 @Entity
@@ -30,13 +30,13 @@ public class Branch {
     private String description;
 
     @CreatedDate
-    private LocalDateTime createdDate;
-    private LocalDateTime  supressionDate;
-    private LocalDateTime  definitivSupressionDate;
+    private Instant createdDate;
+    private Instant  supressionDate;
+    private Instant  definitivSupressionDate;
 
     @Column(name = "last_update_date")
     @LastModifiedDate
-    private LocalDateTime lastUpdateDate;
+    private Instant lastUpdateDate;
     private Long branchParentId;
 
     @ManyToOne
@@ -48,7 +48,7 @@ public class Branch {
 
     public Branch() {
     }
-    public Branch(Long id, String name, String description, LocalDateTime createdDate, LocalDateTime supressionDate, LocalDateTime  definitivSupressionDate, LocalDateTime lastUpdateDate, Long branchParentId, Composition composition, Set<Version> versions) {
+    public Branch(Long id, String name, String description, Instant createdDate, Instant supressionDate, Instant  definitivSupressionDate, Instant lastUpdateDate, Long branchParentId, Composition composition, Set<Version> versions) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -83,31 +83,31 @@ public class Branch {
         this.description = description;
     }
 
-    public LocalDateTime getCreatedDate() {
+    public Instant getCreatedDate() {
         return createdDate;
     }
-    public void setCreatedDate(LocalDateTime createdDate) {
+    public void setCreatedDate(Instant createdDate) {
         this.createdDate = createdDate;
     }
 
-    public LocalDateTime getSupressionDate() {
+    public Instant getSupressionDate() {
         return supressionDate;
     }
-    public void setSupressionDate(LocalDateTime supressionDate) {
+    public void setSupressionDate(Instant supressionDate) {
         this.supressionDate = supressionDate;
     }
 
-    public LocalDateTime getDefinitivSupressionDate() {
+    public Instant getDefinitivSupressionDate() {
         return definitivSupressionDate;
     }
-    public void setDefinitivSupressionDate(LocalDateTime definitivSupressionDate) {
+    public void setDefinitivSupressionDate(Instant definitivSupressionDate) {
         this.definitivSupressionDate = definitivSupressionDate;
     }
 
-    public LocalDateTime getLastUpdateDate() {
+    public Instant getLastUpdateDate() {
         return lastUpdateDate;
     }
-    public void setLastUpdateDate(LocalDateTime lastUpdateDate) {
+    public void setLastUpdateDate(Instant lastUpdateDate) {
         this.lastUpdateDate = lastUpdateDate;
     }
 

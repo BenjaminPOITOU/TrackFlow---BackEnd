@@ -7,6 +7,7 @@ import com.eql.cda.track.flow.repository.BranchRepository;
 import com.eql.cda.track.flow.repository.CompositionRepository;
 import com.eql.cda.track.flow.service.BranchService;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -49,18 +51,19 @@ public class BranchServiceImpl implements BranchService {
     }
 
     @Override
+    @Transactional // Important pour que la création soit dans la même transaction si nécessaire
     public Branch findOrCreateBranch(Composition composition, Long branchId, String newBranchName, Long parentBranchId, String branchDescription) {
         Branch branch;
-        Long compositionId = composition.getId();
+        Long compositionId = composition.getId(); // Récupère l'ID pour la recherche
 
         if (branchId != null) {
+            // --- Logique pour trouver par ID (reste inchangée) ---
             logger.debug("Finding existing branch with ID: {} for Composition {}", branchId, compositionId);
             branch = branchRepository.findById(branchId)
                     .orElseThrow(() -> {
                         logger.error("Branch not found with ID: {}", branchId);
                         return new EntityNotFoundException("Branch not found with id: " + branchId);
                     });
-            // Validation d'appartenance
             if (!branch.getComposition().getId().equals(compositionId)) {
                 logger.error("Branch {} does not belong to Composition {}", branchId, compositionId);
                 throw new IllegalArgumentException("Branch " + branchId + " does not belong to Composition " + compositionId);
@@ -68,24 +71,45 @@ public class BranchServiceImpl implements BranchService {
             logger.info("Using existing branch: ID={}, Name={} for Composition {}", branch.getId(), branch.getName(), compositionId);
 
         } else if (newBranchName != null && !newBranchName.isBlank()) {
-            logger.debug("Attempting to create new branch with name: '{}' for Composition {}. ParentBranchId: {}", newBranchName, compositionId, parentBranchId);
-            branch = new Branch();
-            branch.setName(newBranchName);
-            branch.setComposition(composition);
-            branch.setDescription(branchDescription);
+            // --- Logique pour trouver OU créer par nom --- (MODIFIÉE)
+            String cleanBranchName = newBranchName.trim(); // Nettoyer le nom
+            logger.debug("Attempting to find or create branch with name: '{}' for Composition {}", cleanBranchName, compositionId);
 
-            // Valider et lier la branche parente si nécessaire
-            if (parentBranchId != null) {
-                Branch parentBranch = findAndValidateParentBranch(parentBranchId, compositionId);
-                // Tu pourrais vouloir lier parentBranch à la nouvelle branche si tu ajoutes une relation parent dans l'entité Branch
-                //branch.setParentBranch(parentBranch); // Si tu as un champ parentBranch
+            // 1. Essayer de trouver la branche par nom ET composition ID
+            Optional<Branch> existingBranchOpt = branchRepository.findByCompositionIdAndName(compositionId, cleanBranchName);
+
+            if (existingBranchOpt.isPresent()) {
+                // 2a. Si trouvée, utiliser la branche existante
+                branch = existingBranchOpt.get();
+                logger.info("Found existing branch by name: ID={}, Name={} for Composition {}", branch.getId(), branch.getName(), compositionId);
+                // Optionnel : Mettre à jour la description si une nouvelle est fournie ?
+                if (branchDescription != null && !branchDescription.equals(branch.getDescription())) {
+                    logger.debug("Updating description for existing branch {} to '{}'", branch.getId(), branchDescription);
+                    branch.setDescription(branchDescription);
+                    branch = branchRepository.save(branch); // Sauvegarder la mise à jour de description
+                }
+
+            } else {
+                // 2b. Si non trouvée, créer la nouvelle branche
+                logger.debug("Branch '{}' not found for Composition {}. Creating new branch. ParentBranchId: {}", cleanBranchName, compositionId, parentBranchId);
+                branch = new Branch();
+                branch.setName(cleanBranchName);
+                branch.setComposition(composition);
+                branch.setDescription(branchDescription); // Utiliser la description fournie
+
+                // Valider et lier la branche parente si nécessaire (logique inchangée pour l'instant)
+                if (parentBranchId != null) {
+                    Branch parentBranch = findAndValidateParentBranch(parentBranchId, compositionId);
+                    // Lier si tu as un champ parent: branch.setParentBranch(parentBranch);
+                }
+
+                // Sauvegarder la nouvelle branche
+                branch = branchRepository.save(branch);
+                logger.info("Created new branch: ID={}, Name={} for Composition {}", branch.getId(), branch.getName(), compositionId);
             }
-            // Sauvegarder la nouvelle branche
-            branch = branchRepository.save(branch);
-            logger.info("Created new branch: ID={}, Name={} for Composition {}", branch.getId(), branch.getName(), compositionId);
 
         } else {
-            // Normalement géré par la validation DTO en amont, mais sécurité ici.
+            // --- Logique d'erreur (reste inchangée) ---
             logger.error("Logic error: findOrCreateBranch called without branchId or newBranchName for Composition {}", compositionId);
             throw new IllegalArgumentException("Internal error: Either branchId or newBranchName must be provided for branch creation/retrieval.");
         }

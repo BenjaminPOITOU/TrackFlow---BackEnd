@@ -154,30 +154,30 @@ public class VersionController {
         }
     }
 
-    @GetMapping("/compositions/{compositionId}/prepare-new-version")
-    public ResponseEntity<NewVersionModalDto> prepareNewVersionModalData(
+    @GetMapping("/compositions/{compositionId}/prepare-new-version-for-branch")
+    public ResponseEntity<NewVersionModalDto> prepareNewVersionModalDataForBranch(
             @PathVariable Long compositionId,
-            @RequestParam(required = false) Long basedOnVersionId) { // ID parent optionnel
+            @RequestParam Long branchId) { // ID de la branche cible OBLIGATOIRE
 
-        logger.info("GET /api/compositions/{}/prepare-new-version - Preparing modal data. Based on version ID: {}",
-                compositionId, Optional.ofNullable(basedOnVersionId).map(String::valueOf).orElse("None (First Version?)"));
+        logger.info("GET /api/compositions/{}/prepare-new-version-for-branch - Preparing modal data for target branch ID: {}",
+                compositionId, branchId);
         try {
-            // Appel du service modifié
-            NewVersionModalDto modalData = versionService.prepareNewVersionModalData(compositionId, Optional.ofNullable(basedOnVersionId));
-            logger.debug("Modal data prepared successfully for composition {}", compositionId);
+            // Appel du service modifié qui prend les deux IDs
+            NewVersionModalDto modalData = versionService.prepareNewVersionModalDataForBranch(compositionId, branchId);
+            logger.debug("Modal data prepared successfully for composition {} and branch {}", compositionId, branchId);
             return ResponseEntity.ok(modalData);
         } catch (EntityNotFoundException e) {
-            // Gérer si Composition ou basedOnVersionId n'est pas trouvé
+            // Gérer si Composition ou Branch n'est pas trouvé
             logger.warn("Failed to prepare modal data: {}", e.getMessage());
             return ResponseEntity.notFound().build(); // 404
         } catch (IllegalStateException e) {
-            logger.error("Failed to prepare modal data for composition {}: Data inconsistency - {}", compositionId, e.getMessage());
+            logger.error("Failed to prepare modal data for composition {} / branch {}: Data inconsistency - {}", compositionId, branchId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // 500
-        } catch (IllegalArgumentException e) { // Attraper validation explicite
-            logger.warn("Failed to prepare modal data for composition {}: Invalid argument - {}", compositionId, e.getMessage());
+        } catch (IllegalArgumentException e) { // Attraper validation explicite (ex: branche n'appartient pas à compo)
+            logger.warn("Failed to prepare modal data for composition {} / branch {}: Invalid argument - {}", compositionId, branchId, e.getMessage());
             return ResponseEntity.badRequest().build(); // 400
         } catch (Exception e) {
-            logger.error("Failed to prepare modal data for composition {}: Unexpected error - {}", compositionId, e.getMessage(), e);
+            logger.error("Failed to prepare modal data for composition {} / branch {}: Unexpected error - {}", compositionId, branchId, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // 500
         }
     }

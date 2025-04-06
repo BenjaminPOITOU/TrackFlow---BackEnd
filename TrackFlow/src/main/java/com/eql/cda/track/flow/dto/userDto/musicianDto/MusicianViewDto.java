@@ -2,7 +2,7 @@ package com.eql.cda.track.flow.dto.userDto.musicianDto;
 
 import com.eql.cda.track.flow.entity.UserRole;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Date;
 
 public class MusicianViewDto {
@@ -16,12 +16,12 @@ public class MusicianViewDto {
     private String biography;
     private String picture;
     private UserRole userRole;
-    private LocalDateTime creationDate;
+    private Instant creationDate;
 
 
 
     // Constructeur (souvent utilisé par le mapper/service pour convertir l'entité User en UserViewDto)
-    public MusicianViewDto(Long id, String login, String firstName, String lastName, String mobile, String address, String biography, String picture, UserRole userRole, LocalDateTime creationDate) {
+    public MusicianViewDto(Long id, String login, String firstName, String lastName, String mobile, String address, String biography, String picture, UserRole userRole, Instant creationDate) {
         this.id = id;
         this.login = login;
         this.firstName = firstName;
@@ -72,7 +72,7 @@ public class MusicianViewDto {
         return userRole;
     }
 
-    public LocalDateTime getCreationDate() {
+    public Instant getCreationDate() {
         return creationDate;
     }
 
@@ -113,7 +113,7 @@ public class MusicianViewDto {
         this.userRole = userRole;
     }
 
-    public void setCreationDate(LocalDateTime creationDate) {
+    public void setCreationDate(Instant creationDate) {
         this.creationDate = creationDate;
     }
 

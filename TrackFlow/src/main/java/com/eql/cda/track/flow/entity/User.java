@@ -21,7 +21,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 
@@ -46,12 +46,12 @@ public abstract class User {
 
     @CreatedDate
     @Column(updatable = false)
-    private LocalDateTime creationDate;
+    private Instant creationDate;
 
     @LastModifiedDate
-    private LocalDateTime updateDate;
+    private Instant updateDate;
 
-    private LocalDateTime suppressionDate;
+    private Instant suppressionDate;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     @JsonManagedReference
@@ -68,7 +68,7 @@ public abstract class User {
     public User() {
     }
 
-    public User(Long id, String lastName, String firstName, @Unique String login, String password, LocalDateTime creationDate, LocalDateTime updateDate, LocalDateTime suppressionDate, List<Project> projects, UserRole userRole, Set<Access> accesses) {
+    public User(Long id, String lastName, String firstName, @Unique String login, String password, Instant creationDate, Instant updateDate, Instant suppressionDate, List<Project> projects, UserRole userRole, Set<Access> accesses) {
         this.id = id;
         this.lastName = lastName;
         this.firstName = firstName;
@@ -114,24 +114,24 @@ public abstract class User {
         this.password = password;
     }
 
-    public LocalDateTime getCreationDate() {
+    public Instant getCreationDate() {
         return creationDate;
     }
-    public void setCreationDate(LocalDateTime creationDate) {
+    public void setCreationDate(Instant creationDate) {
         this.creationDate = creationDate;
     }
 
-    public LocalDateTime getUpdateDate() {
+    public Instant getUpdateDate() {
         return updateDate;
     }
-    public void setUpdateDate(LocalDateTime updateDate) {
+    public void setUpdateDate(Instant updateDate) {
         this.updateDate = updateDate;
     }
 
-    public LocalDateTime getSuppressionDate() {
+    public Instant getSuppressionDate() {
         return suppressionDate;
     }
-    public void setSuppressionDate(LocalDateTime suppressionDate) {
+    public void setSuppressionDate(Instant suppressionDate) {
         this.suppressionDate = suppressionDate;
     }
 
