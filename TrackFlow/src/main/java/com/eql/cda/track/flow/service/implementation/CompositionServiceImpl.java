@@ -8,17 +8,22 @@ import com.eql.cda.track.flow.entity.Branch;
 import com.eql.cda.track.flow.entity.Composition;
 import com.eql.cda.track.flow.entity.Project;
 import com.eql.cda.track.flow.entity.ProjectMusicalGenderPreDefined;
+import com.eql.cda.track.flow.entity.User;
 import com.eql.cda.track.flow.entity.Version;
 import com.eql.cda.track.flow.repository.CompositionRepository;
 import com.eql.cda.track.flow.repository.ProjectRepository;
 import com.eql.cda.track.flow.repository.UserRepository;
+import com.eql.cda.track.flow.service.BranchService;
 import com.eql.cda.track.flow.service.CompositionService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -42,11 +47,20 @@ import static com.eql.cda.track.flow.validation.Constants.RECENT_COMPOSITION_COU
 @Service
 public class CompositionServiceImpl implements CompositionService {
 
-    CompositionRepository compositionRepository;
-    ProjectRepository projectRepository;
-    UserRepository userRepository;
 
+    private static final Logger logger = LogManager.getLogger(VersionServiceImpl.class);
 
+    private final CompositionRepository compositionRepository;
+    private final ProjectRepository projectRepository;
+    private final UserRepository userRepository;
+    private final BranchService branchService;
+
+    public CompositionServiceImpl(CompositionRepository compositionRepository, ProjectRepository projectRepository, UserRepository userRepository, BranchService branchService) {
+        this.compositionRepository = compositionRepository;
+        this.projectRepository = projectRepository;
+        this.userRepository = userRepository;
+        this.branchService = branchService;
+    }
 
     @Override
     @Transactional
@@ -76,25 +90,41 @@ public class CompositionServiceImpl implements CompositionService {
         composition.setCompositionStatus(compositionCreateDto.getCompositionStatus() !=null ? compositionCreateDto.getCompositionStatus(): null);
 
         Composition compositionCreated = compositionRepository.save(composition);
-        return mapEntityToViewDto(compositionCreated);
+
+
+        logger.info("Composition created with ID: {}", compositionCreated.getId());
+        try {
+            logger.debug("Creating default 'main' branch for composition ID: {}", compositionCreated.getId());
+            Branch mainBranch = branchService.findOrCreateBranch(
+                    compositionCreated,
+                    null, // Pas d'ID de branche existante à chercher
+                    VersionNamingServiceImpl.MAIN_BRANCH_NAME,
+                    null, // Pas d'ID de branche parente
+                    "Main development branch"
+            );
+            logger.info("Successfully created or found 'main' branch with ID: {} for composition ID: {}", mainBranch.getId(), compositionCreated.getId());
+        } catch (Exception e) {
+            logger.error("Failed to create the default 'main' branch for composition {}. Transaction will be rolled back.", compositionCreated.getId(), e);
+            throw new RuntimeException("Failed to initialize 'main' branch for the new composition.", e);
+        }
+        return mapEntityToViewDto(compositionCreated); // Assure-toi que cette méthode existe et fonctionne
     }
+
+
 
     @Override
     @Transactional
-    public List<CompositionSummaryDto> getRecentSummaryCompositionDto(Long userId) {
-        Objects.requireNonNull(userId, "Project ID cannot be null");
-        if (!userRepository.existsById(userId)) {
-            throw new EntityNotFoundException("User not found with ID: " + userId);
-        }
+    public Page<CompositionSummaryDto> findRecentCompositionsForUser(String username, Pageable pageable) {
+        User user = userRepository.findByLogin(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
 
-        Pageable pageable = PageRequest.of(0, RECENT_COMPOSITION_COUNT, Sort.by(Sort.Direction.DESC, "lastUpdateDate"));
-        Page<Composition> recentCompositionsPage = compositionRepository.findAllByProjectUserId(userId, pageable);
+        // Utilise la méthode existante du repository qui prend userId et Pageable
+        Page<Composition> recentCompositionsPage = compositionRepository.findAllByProjectUserId(user.getId(), pageable);
 
-        List<Composition> compositions = recentCompositionsPage.getContent();
-        return compositions.stream()
-                .map(this::mapEntityToSummaryDto)
-                .collect(Collectors.toList());
+        // Mapper la Page<Composition> vers Page<CompositionSummaryDto>
+        return recentCompositionsPage.map(this::mapEntityToSummaryDto);
     }
+
 
     @Override
     @Transactional
@@ -312,16 +342,4 @@ public class CompositionServiceImpl implements CompositionService {
 
 
 
-    @Autowired
-    public void setCompositionRepository(CompositionRepository compositionRepository) {
-        this.compositionRepository = compositionRepository;
-    }
-    @Autowired
-    public void setProjectRepository(ProjectRepository projectRepository) {
-        this.projectRepository = projectRepository;
-    }
-    @Autowired
-    public void setUserRepository(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
 }

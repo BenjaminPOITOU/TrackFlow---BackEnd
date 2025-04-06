@@ -17,12 +17,14 @@ import com.eql.cda.track.flow.entity.Annotation;
 import com.eql.cda.track.flow.entity.AnnotationStatus;
 import com.eql.cda.track.flow.entity.Branch;
 import com.eql.cda.track.flow.entity.Composition;
+import com.eql.cda.track.flow.entity.User;
 import com.eql.cda.track.flow.entity.Version;
 import com.eql.cda.track.flow.entity.VersionInstrument;
 import com.eql.cda.track.flow.entity.VersionInstrumentPreDefined;
 import com.eql.cda.track.flow.repository.AnnotationRepository;
 import com.eql.cda.track.flow.repository.BranchRepository;
 import com.eql.cda.track.flow.repository.CompositionRepository;
+import com.eql.cda.track.flow.repository.UserRepository;
 import com.eql.cda.track.flow.repository.VersionInstrumentRepository;
 import com.eql.cda.track.flow.repository.VersionRepository;
 import com.eql.cda.track.flow.service.AudioMetadataService;
@@ -31,11 +33,16 @@ import com.eql.cda.track.flow.service.StorageService;
 import com.eql.cda.track.flow.service.VersionNamingService; // AJOUT
 import com.eql.cda.track.flow.service.VersionService;
 import com.eql.cda.track.flow.service.mapper.AnnotationMapper;
+import com.eql.cda.track.flow.service.mapper.VersionMapper;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.hibernate.Hibernate;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -74,9 +81,13 @@ public class VersionServiceImpl implements VersionService {
     private final BranchRepository branchRepository;
     private final VersionNamingService versionNamingService;
     private final AnnotationRepository annotationRepository;
-    private final AnnotationMapper annotationMapper;
+    private final UserRepository userRepository;
 
-    public VersionServiceImpl(VersionRepository versionRepository, CompositionRepository compositionRepository, StorageService storageService, AudioMetadataService audioMetadataService, VersionInstrumentRepository versionInstrumentRepository, BranchService branchService, BranchRepository branchRepository, VersionNamingService versionNamingService, AnnotationRepository annotationRepository, AnnotationMapper annotationMapper) {
+    private final AnnotationMapper annotationMapper;
+    private final VersionMapper versionMapper;
+
+
+    public VersionServiceImpl(VersionRepository versionRepository, CompositionRepository compositionRepository, StorageService storageService, AudioMetadataService audioMetadataService, VersionInstrumentRepository versionInstrumentRepository, BranchService branchService, BranchRepository branchRepository, VersionNamingService versionNamingService, AnnotationRepository annotationRepository, UserRepository userRepository, AnnotationMapper annotationMapper, VersionMapper versionMapper) {
         this.versionRepository = versionRepository;
         this.compositionRepository = compositionRepository;
         this.storageService = storageService;
@@ -86,7 +97,9 @@ public class VersionServiceImpl implements VersionService {
         this.branchRepository = branchRepository;
         this.versionNamingService = versionNamingService;
         this.annotationRepository = annotationRepository;
+        this.userRepository = userRepository;
         this.annotationMapper = annotationMapper;
+        this.versionMapper = versionMapper;
     }
 
     @Override
@@ -161,70 +174,118 @@ public class VersionServiceImpl implements VersionService {
     }
 
     @Override
-    public NewVersionModalDto prepareNewVersionModalData(Long currentVersionId) {
-        logger.info("Preparing data for new version modal based on version ID: {}", currentVersionId);
+    public NewVersionModalDto prepareNewVersionModalData(Long compositionId, Optional<Long> basedOnVersionIdOpt) {
+        logger.info("Preparing data for new version modal for composition ID: {}. Based on version ID: {}",
+                compositionId, basedOnVersionIdOpt.map(String::valueOf).orElse("None"));
 
-        // 1. & 2. Trouver version actuelle et infos contexte (inchangé)
-        Version currentVersion = versionRepository.findById(currentVersionId) // Utilise une requête qui fetch branche/compo si possible
-                .orElseThrow(() -> new EntityNotFoundException("Version not found with id: " + currentVersionId));
-        Branch currentBranch = currentVersion.getBranch();
-        if (currentBranch == null || currentBranch.getComposition() == null) {
-            throw new IllegalStateException("Data inconsistency: Version " + currentVersionId + " or its context is invalid.");
-        }
-        Long compositionId = currentBranch.getComposition().getId();
-        logger.debug("Context: Version='{}', Branch='{}' (ID={}), Composition ID={}",
-                currentVersion.getName(), currentBranch.getName(), currentBranch.getId(), compositionId);
+        // 1. Trouver la composition (obligatoire)
+        Composition composition = compositionRepository.findById(compositionId)
+                .orElseThrow(() -> new EntityNotFoundException("Composition not found with id: " + compositionId));
 
+        // 2. Vérifier si on peut créer une nouvelle branche (basé sur la composition)
+        boolean canCreateNewBranch = versionRepository.existsByBranch_Composition_IdAndBranch_Name(
+                compositionId,
+                MAIN_BRANCH_NAME
+        );
+        logger.debug("Can create new branch for composition {}? {}", compositionId, canCreateNewBranch);
 
-        // 3. Lister branches disponibles (inchangé)
+        // 3. Lister les branches disponibles pour cette composition
         List<Branch> allBranches = branchRepository.findByCompositionIdOrderByNameAsc(compositionId);
         List<BranchSummaryDto> availableBranchesDto = allBranches.stream()
                 .map(branch -> new BranchSummaryDto(branch.getId(), branch.getName(), branch.getDescription()))
                 .collect(Collectors.toList());
 
 
-        // --- MODIFICATION ICI ---
-        // 4. Calculer le nom potentiel de la prochaine version SUR la branche ACTUELLE
-        //    Utilise calculatePotentialNameForBranch qui contient la logique d'incrément pour cette branche
         String potentialNextVersionName;
-        try {
-            // Utilisation de la méthode revue qui cherche la dernière version et incrémente
-            potentialNextVersionName = versionNamingService.calculatePotentialNameForBranch(currentBranch.getId());
-            logger.debug("Calculated potential next version name on current branch (ID: {}): {}", currentBranch.getId(), potentialNextVersionName);
-        } catch (Exception e) {
-            logger.error("Could not calculate potential next version name for branch {}: {}", currentBranch.getId(), e.getMessage(), e);
-            potentialNextVersionName = "V?.?-error"; // Erreur de calcul
+        List<VersionInstrumentPreDefined> previousVersionInstrumentsDto = Collections.emptyList();
+        List<AnnotationResponseDto> previousVersionAnnotationsDto = Collections.emptyList();
+        Long previousVersionIdForModal = null; // L'ID à afficher comme "basé sur"
+        Long currentBranchIdForModal = null;
+        String currentBranchNameForModal = null;
+
+
+        if (basedOnVersionIdOpt.isPresent()) {
+            // --- Cas où on se base sur une version précédente ---
+            Long basedOnVersionId = basedOnVersionIdOpt.get();
+            logger.debug("Fetching details from basedOnVersionId: {}", basedOnVersionId);
+
+            Version previousVersion = versionRepository.findById(basedOnVersionId)
+                    .orElseThrow(() -> new EntityNotFoundException("Based on version not found with id: " + basedOnVersionId));
+
+            // Validation : la version parente appartient-elle bien à la composition ?
+            if (!previousVersion.getBranch().getComposition().getId().equals(compositionId)) {
+                throw new IllegalArgumentException("Version " + basedOnVersionId + " does not belong to composition " + compositionId);
+            }
+
+            Branch previousBranch = previousVersion.getBranch();
+            previousVersionIdForModal = previousVersion.getId();
+            currentBranchIdForModal = previousBranch.getId();
+            currentBranchNameForModal = previousBranch.getName();
+
+
+            // Récupérer instruments de la version précédente
+            List<VersionInstrument> previousInstrumentsEntities = versionInstrumentRepository.findByVersion(previousVersion);
+            previousVersionInstrumentsDto = previousInstrumentsEntities.stream()
+                    .map(VersionInstrument::getInstrument)
+                    .distinct()
+                    .collect(Collectors.toList());
+            logger.debug("Found {} distinct instruments in previous version {}", previousVersionInstrumentsDto.size(), basedOnVersionId);
+
+            // Récupérer annotations de la version précédente
+            List<Annotation> previousAnnotations = annotationRepository.findByVersionId(basedOnVersionId);
+            previousVersionAnnotationsDto = annotationMapper.toAnnotationResponseDtoList(previousAnnotations);
+            logger.debug("Found {} annotations in previous version {}", previousVersionAnnotationsDto.size(), basedOnVersionId);
+
+            // Calculer le nom potentiel basé sur la version précédente et sa branche
+            try {
+                potentialNextVersionName = versionNamingService.generateNextVersionName(previousVersion, previousBranch);
+                logger.debug("Calculated potential next version name based on previous version {}: {}", basedOnVersionId, potentialNextVersionName);
+            } catch (Exception e) {
+                logger.error("Could not calculate potential next version name based on version {}: {}", basedOnVersionId, e.getMessage(), e);
+                potentialNextVersionName = "V?.?-error";
+            }
+
+        } else {
+
+            logger.debug("No basedOnVersionId provided. Assuming first version scenario or targeting 'main' without explicit parent.");
+
+            try {
+                // Tentative : trouver la dernière version sur main, si elle existe. Sinon -> V1.0
+                Optional<Branch> mainBranchOpt = branchRepository.findByCompositionIdAndName(compositionId, MAIN_BRANCH_NAME);
+                if(mainBranchOpt.isPresent()) {
+                    // Trouver la dernière version sur la branche main
+                    Optional<Version> latestOnMainOpt = versionRepository.findTopByBranchOrderByNameDesc(mainBranchOpt.get());
+                    if (latestOnMainOpt.isPresent()) {
+                        potentialNextVersionName = versionNamingService.generateNextVersionName(latestOnMainOpt.get(), mainBranchOpt.get());
+                    } else {
+                        potentialNextVersionName = versionNamingService.generateFirstEverVersionName();
+                    }
+                } else {
+
+                    logger.warn("Main branch not found for composition {}, defaulting potential name to V1.0", compositionId);
+                    potentialNextVersionName = versionNamingService.generateFirstEverVersionName();
+                }
+                logger.debug("Calculated potential next version name (first version scenario): {}", potentialNextVersionName);
+            } catch (Exception e) {
+                logger.error("Could not calculate potential first version name for composition {}: {}", compositionId, e.getMessage(), e);
+                potentialNextVersionName = "V1.0-error";
+            }
+
         }
 
-        // 5. Récupérer instruments actuels (Logique d'extraction des enums inchangée)
-        //    Si tu changes le DTO pour les instruments -> ajuster ici
-        List<VersionInstrument> currentVersionInstrumentsEntities = versionInstrumentRepository.findByVersion(currentVersion);
-        List<VersionInstrumentPreDefined> previousVersionInstrumentsDto = currentVersionInstrumentsEntities.stream()
-                .map(VersionInstrument::getInstrument)
-                .distinct()
-                .collect(Collectors.toList());
-        logger.debug("Found {} distinct instruments in current version {}", previousVersionInstrumentsDto.size(), currentVersionId);
+        // 8. Construire DTO final
+        NewVersionModalDto modalDto = new NewVersionModalDto();
+        modalDto.setParentVersionId(previousVersionIdForModal); // Peut être null si 1ere version
+        modalDto.setCurrentBranchId(currentBranchIdForModal);   // Peut être null si 1ere version
+        modalDto.setCurrentBranchName(currentBranchNameForModal); // Peut être null si 1ere version
+        modalDto.setAvailableBranches(availableBranchesDto);
+        modalDto.setPotentialNextVersionName(potentialNextVersionName);
+        modalDto.setPreviousVersionInstruments(previousVersionInstrumentsDto); // Sera vide si 1ere version
+        modalDto.setPreviousVersionAnnotations(previousVersionAnnotationsDto); // Sera vide si 1ere version
+        modalDto.setCanCreateNewBranch(canCreateNewBranch);
 
 
-        // 6. Récupérer les annotations de la version précédente (si implémenté)
-        List<Annotation> currentAnnotations = annotationRepository.findByVersionId(currentVersionId); // ou findByVersion(currentVersion)
-        List<AnnotationResponseDto> previousVersionAnnotationsDto = annotationMapper.toAnnotationResponseDtoList(currentAnnotations);
-        logger.debug("Found {} annotations in current version {}", previousVersionAnnotationsDto.size(), currentVersionId);
-
-
-        // 7. Construire DTO final
-     NewVersionModalDto modalDto = new NewVersionModalDto(); // Crée via constructeur vide
-
-        // Puis utiliser les setters
-        modalDto.setCurrentVersionId(currentVersionId); // <- Long attendu
-        modalDto.setCurrentBranchId(currentBranch.getId()); // <- Long attendu
-        modalDto.setCurrentBranchName(currentBranch.getName()); // <- String attendu
-        modalDto.setAvailableBranches(availableBranchesDto); // <- List<BranchSummaryDto> attendue
-        modalDto.setPotentialNextVersionName(potentialNextVersionName); // <- String attendu
-        modalDto.setPreviousVersionInstruments(previousVersionInstrumentsDto); // <- List<VersionInstrumentPreDefined> attendue
-        modalDto.setPreviousVersionAnnotations(previousVersionAnnotationsDto);
-
-        logger.info("Successfully prepared data for new version modal.");
+        logger.info("Successfully prepared data for new version modal (canCreateNewBranch={}).", modalDto.isCanCreateNewBranch());
         return modalDto;
     }
 
@@ -357,7 +418,6 @@ public class VersionServiceImpl implements VersionService {
 
     @Override
     @Transactional
-    // --- Signature MODIFIÉE ---
     public VersionResponseDto createVersion(Long compositionId, VersionCreateDto dto) {
         logger.info("Attempting to create new version for composition ID {}. DTO parentId: {}",
                 compositionId, dto.getParentVersionId());
@@ -439,10 +499,6 @@ public class VersionServiceImpl implements VersionService {
             newVersionName = versionNamingService.generateNextVersionName(parentVersion, targetBranch);
             logger.info("Generated next version name: {}", newVersionName);
         }
-        // --- Fin de la Logique Différentielle ---
-
-
-        // --- Suite Commune ---
 
         // 6. Créer l'entité Version (N)
         Version newVersion = new Version();
@@ -487,6 +543,31 @@ public class VersionServiceImpl implements VersionService {
 
         // 10. Mapper vers DTO de réponse
         return mapVersionToResponseDto(savedVersion);
+    }
+
+    @Override
+    @Transactional
+    public Optional<VersionResponseDto> findLatestVersionForUser(String login) {
+        // 1. Trouver l'utilisateur
+        User user = userRepository.findByLogin(login)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + login));
+
+        // 2. Créer un Pageable pour ne demander que le premier élément
+        Pageable firstResultPageable = PageRequest.of(0, 1);
+
+        // 3. Appeler le repository
+        Page<Version> latestVersionPage = versionRepository.findLatestVersionForUser(user, firstResultPageable);
+
+        // 4. Vérifier si une version a été trouvée et mapper
+        if (latestVersionPage.hasContent()) {
+            Version latestVersion = latestVersionPage.getContent().get(0);
+            // Assure-toi que ton mapper a une méthode pour convertir Version -> VersionResponseDto
+            VersionResponseDto dto = versionMapper.toVersionResponseDto(latestVersion);
+            return Optional.of(dto);
+        } else {
+            // Aucune version trouvée pour cet utilisateur
+            return Optional.empty();
+        }
     }
 
     private void validateDtoBasicConstraints(VersionCreateDto dto) {

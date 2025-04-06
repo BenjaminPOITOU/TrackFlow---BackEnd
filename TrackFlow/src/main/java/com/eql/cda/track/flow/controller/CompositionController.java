@@ -17,8 +17,16 @@ import com.eql.cda.track.flow.entity.VersionInstrumentPreDefined;
 import com.eql.cda.track.flow.service.CompositionService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -26,6 +34,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Arrays;
@@ -37,6 +46,7 @@ import java.util.stream.Collectors;
 public class CompositionController {
 
     private final CompositionService compositionService;
+    private static final Logger logger = LoggerFactory.getLogger(ProjectController.class);
 
     @Autowired
     public CompositionController(CompositionService compositionService) {
@@ -123,18 +133,23 @@ public class CompositionController {
      * GET /api/users/{userId}/compositions/recent
      * (Cohérent avec /api/users/{userId}/projects/recent)
      */
-    @GetMapping("/users/{userId}/compositions/recent")
-    public ResponseEntity<List<CompositionSummaryDto>> getRecentCompositionsByUser(
-            @PathVariable Long userId) {
-        // !! SÉCURITÉ !! : Vérifier que l'utilisateur authentifié est bien {userId}
-        // OU a les droits (ex: admin) de voir les compositions récentes de {userId}.
-        try {
-            List<CompositionSummaryDto> recentCompositions = compositionService.getRecentSummaryCompositionDto(userId);
-            return ResponseEntity.ok(recentCompositions); // Statut 200 OK
-        } catch (EntityNotFoundException e) { // Si l'utilisateur n'existe pas
-            return ResponseEntity.notFound().build(); // Statut 404 Not Found
-        }
+    @GetMapping("/compositions/recent") // Nouvelle route standardisée
+    public ResponseEntity<Page<CompositionSummaryDto>> getRecentCompositions(
+            @RequestParam String username, // Pour l'instant
+            @PageableDefault(size = 5, sort = "lastUpdateDate", direction = Sort.Direction.DESC) Pageable pageable) {
 
+        logger.info("GET /api/compositions/recent - Request for user '{}', pageable: {}", username, pageable);
+
+        try {
+            Page<CompositionSummaryDto> recentCompositions = compositionService.findRecentCompositionsForUser(username, pageable);
+            return ResponseEntity.ok(recentCompositions);
+        } catch (UsernameNotFoundException e) {
+            logger.warn("User not found for username: '{}'", username);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build(); // 404 si user inconnu
+        } catch (Exception e) {
+            logger.error("Error retrieving recent compositions for user '{}': {}", username, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     /**

@@ -20,6 +20,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -49,62 +50,62 @@ public class ProjectServiceImpl implements ProjectService {
     /// METHODES - COUCHE SERVICE ///
 
 
-    @Override
-    @Transactional
-    public ProjectCreateDto createProject(Long userId, ProjectCreateDto projectCreateDto){// <-- Retourne ProjectViewDto
+        @Override
+        @Transactional
+        public ProjectCreateDto createProject(Long userId, ProjectCreateDto projectCreateDto){// <-- Retourne ProjectViewDto
 
-    /// START VERIFICATIONS ///
-        if (projectCreateDto == null) {
-        throw new IllegalArgumentException("Project creation data cannot be null.");
-    }
-        if (!StringUtils.hasText(projectCreateDto.getTitle())) {
-        throw new IllegalArgumentException("Project title is mandatory and cannot be empty or blank.");
-    }
-        if (projectCreateDto.getProjectStatus() == null) {
-        throw new IllegalArgumentException("Project status is mandatory.");
-    }
-        if (projectCreateDto.getIllustration() != null && !StringUtils.hasText(projectCreateDto.getIllustration())) {
-        throw new IllegalArgumentException("Illustration URL, if provided, cannot be blank.");
-    }
-        try {
-        if (StringUtils.hasText(projectCreateDto.getIllustration())) {
-            new URL(projectCreateDto.getIllustration()).toURI();
+        /// START VERIFICATIONS ///
+            if (projectCreateDto == null) {
+            throw new IllegalArgumentException("Project creation data cannot be null.");
         }
-    } catch (MalformedURLException | URISyntaxException e) {
-        throw new IllegalArgumentException("Illustration URL format is invalid.", e);
+            if (!StringUtils.hasText(projectCreateDto.getTitle())) {
+            throw new IllegalArgumentException("Project title is mandatory and cannot be empty or blank.");
+        }
+            if (projectCreateDto.getProjectStatus() == null) {
+            throw new IllegalArgumentException("Project status is mandatory.");
+        }
+            if (projectCreateDto.getIllustration() != null && !StringUtils.hasText(projectCreateDto.getIllustration())) {
+            throw new IllegalArgumentException("Illustration URL, if provided, cannot be blank.");
+        }
+            try {
+            if (StringUtils.hasText(projectCreateDto.getIllustration())) {
+                new URL(projectCreateDto.getIllustration()).toURI();
+            }
+        } catch (MalformedURLException | URISyntaxException e) {
+            throw new IllegalArgumentException("Illustration URL format is invalid.", e);
+        }
+            if (projectCreateDto.getProjectType() == null) {
+            throw new IllegalArgumentException("Project type is mandatory.");
+        }
+        /// END VERIFICATIONS ///
+
+        // Récupération de l'utilisateur créateur
+        User creator = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("Creator user not found with ID: " + userId));
+
+        // Création de la nouvelle entité Project
+        Project newProject = new Project();
+
+        // --- Mapping des champs simples ---
+            newProject.setUser(creator);
+            newProject.setTitle(projectCreateDto.getTitle().trim());
+            newProject.setDescription(projectCreateDto.getDescription() != null ? projectCreateDto.getDescription().trim() : null);
+            newProject.setIllustration(projectCreateDto.getIllustration());
+            newProject.setProjectStatus(projectCreateDto.getProjectStatus());
+            newProject.setProjectType(projectCreateDto.getProjectType());
+            newProject.setProjectCommercialStatus(projectCreateDto.getProjectCommercialStatus());
+
+            newProject.setProjectPurposes(projectCreateDto.getProjectPurposes() != null ? new HashSet<>(projectCreateDto.getProjectPurposes()) : new HashSet<>());
+            newProject.setProjectMusicalGendersPreDefined(projectCreateDto.getProjectMusicalGendersPreDefined() != null ? new HashSet<>(projectCreateDto.getProjectMusicalGendersPreDefined()) : new HashSet<>());
+
+
+
+        Project savedProject = projectRepository.save(newProject);
+
+        // --- Retourne le DTO de vue ---
+        // Tu as besoin d'une méthode pour mapper l'entité Project vers ProjectViewDto
+            return mapEntityToCreateDto(savedProject); // <-- Appelle ta méthode de mapping
     }
-        if (projectCreateDto.getProjectType() == null) {
-        throw new IllegalArgumentException("Project type is mandatory.");
-    }
-    /// END VERIFICATIONS ///
-
-    // Récupération de l'utilisateur créateur
-    User creator = userRepository.findById(userId)
-            .orElseThrow(() -> new EntityNotFoundException("Creator user not found with ID: " + userId));
-
-    // Création de la nouvelle entité Project
-    Project newProject = new Project();
-
-    // --- Mapping des champs simples ---
-        newProject.setUser(creator);
-        newProject.setTitle(projectCreateDto.getTitle().trim());
-        newProject.setDescription(projectCreateDto.getDescription() != null ? projectCreateDto.getDescription().trim() : null);
-        newProject.setIllustration(projectCreateDto.getIllustration());
-        newProject.setProjectStatus(projectCreateDto.getProjectStatus());
-        newProject.setProjectType(projectCreateDto.getProjectType());
-        newProject.setProjectCommercialStatus(projectCreateDto.getProjectCommercialStatus());
-
-        newProject.setProjectPurposes(projectCreateDto.getProjectPurposes() != null ? new HashSet<>(projectCreateDto.getProjectPurposes()) : new HashSet<>());
-        newProject.setProjectMusicalGendersPreDefined(projectCreateDto.getProjectMusicalGendersPreDefined() != null ? new HashSet<>(projectCreateDto.getProjectMusicalGendersPreDefined()) : new HashSet<>());
-
-
-
-    Project savedProject = projectRepository.save(newProject);
-
-    // --- Retourne le DTO de vue ---
-    // Tu as besoin d'une méthode pour mapper l'entité Project vers ProjectViewDto
-        return mapEntityToCreateDto(savedProject); // <-- Appelle ta méthode de mapping
-}
         @Override
         @Transactional
         public ProjectViewDto getCurrentProjectInfo (Long id){
@@ -119,24 +120,11 @@ public class ProjectServiceImpl implements ProjectService {
 
         @Override
         @Transactional
-        public List<ProjectSummaryDto> getRecentProjects () {
-            //Pageable encapsule les informations dont la base
-            // de données a besoin pour savoir quelle page
-            // renvoyer et comment trier les résultats avant de les découper en pages :
-            Pageable pageable = PageRequest.of(
-                    0,
-                    RECENT_PROJECT_COUNT,
-                    Sort.by(Sort.Direction.DESC, "createdDate")
-            );
-
-            Page<Project> recentProjectsPage = projectRepository.findAll(pageable);
-            List<Project> recentProjects = recentProjectsPage.getContent();
-
-            // Mapper vers le nouveau DTO de résumé
-            return recentProjects.stream()
-                    .map(this::mapEntityToProjectSummaryDto)
-                    .collect(Collectors.toList());
-
+        public Page<ProjectSummaryDto> findRecentProjectsForUser(String username, Pageable pageable) {
+            User user = userRepository.findByLogin(username)
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
+            Page<Project> recentProjectsPage = projectRepository.findByUser(user, pageable);
+            return recentProjectsPage.map(this::mapEntityToProjectSummaryDto);
         }
 
         @Override
@@ -349,7 +337,7 @@ public class ProjectServiceImpl implements ProjectService {
             dto.setProjectCommercialStatus(project.getProjectCommercialStatus());
             dto.setProjectPurposes(project.getProjectPurposes());
             dto.setProjectMusicalGendersPreDefined(project.getProjectMusicalGendersPreDefined());
-            dto.setCreationDate(project.getCreationDate());
+            dto.setCreationDate(project.getCreatedDate());
 
             return dto;
         }
@@ -373,7 +361,7 @@ public class ProjectServiceImpl implements ProjectService {
              dto.setCompositionsTotal(project.getCompositions() != null ? project.getCompositions().size() : 0); // ATTENTION ICI !
              dto.setProjectPurposes(project.getProjectPurposes() != null ? new HashSet<>(project.getProjectPurposes()) : new HashSet<>()); // ATTENTION ICI !
              dto.setProjectMusicalGendersPreDefined(project.getProjectMusicalGendersPreDefined() != null ? new HashSet<>(project.getProjectMusicalGendersPreDefined()) : new HashSet<>()); // ATTENTION ICI !
-             dto.setCreationDate(project.getCreationDate());
+             dto.setCreationDate(project.getCreatedDate());
              dto.setUpdateDate(project.getLastUpdateDate());
 
             System.out.println("Finished basic mapping for Project ID: " + project.getId()); // Log de sortie

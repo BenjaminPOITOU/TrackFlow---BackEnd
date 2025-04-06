@@ -8,13 +8,13 @@ import java.util.List;
 
 public class NewVersionModalDto {
 
-    private Long currentVersionId; // L'ID de la version sur laquelle l'utilisateur a cliqué
+    private Long parentVersionId;
     private Long currentBranchId;  // L'ID de la branche de la version actuelle
     private String currentBranchName; // Le nom de la branche actuelle (pour affichage)
     private List<BranchSummaryDto> availableBranches; // Toutes les branches de la composition
     private String potentialNextVersionName; // Nom calculé pour la prochaine version sur la branche actuelle
     private List<VersionInstrumentPreDefined> previousVersionInstruments; // Instruments de la version actuelle
-
+    private boolean canCreateNewBranch;
 
     private List<AnnotationResponseDto> previousVersionAnnotations;
 
@@ -22,22 +22,23 @@ public class NewVersionModalDto {
     public NewVersionModalDto() {
     }
 
-    public NewVersionModalDto(Long currentVersionId, Long currentBranchId, String currentBranchName, List<BranchSummaryDto> availableBranches, String potentialNextVersionName, List<VersionInstrumentPreDefined> previousVersionInstruments, List<AnnotationResponseDto> previousVersionAnnotations) {
-        this.currentVersionId = currentVersionId;
+    public NewVersionModalDto(Long parentVersionId, Long currentBranchId, String currentBranchName, List<BranchSummaryDto> availableBranches, String potentialNextVersionName, List<VersionInstrumentPreDefined> previousVersionInstruments, boolean canCreateNewBranch, List<AnnotationResponseDto> previousVersionAnnotations) {
+        this.parentVersionId = parentVersionId;
         this.currentBranchId = currentBranchId;
         this.currentBranchName = currentBranchName;
         this.availableBranches = availableBranches;
         this.potentialNextVersionName = potentialNextVersionName;
         this.previousVersionInstruments = previousVersionInstruments;
+        this.canCreateNewBranch = canCreateNewBranch;
         this.previousVersionAnnotations = previousVersionAnnotations;
     }
 
-    public Long getCurrentVersionId() {
-        return currentVersionId;
+    public Long getParentVersionId() {
+        return parentVersionId;
     }
 
-    public void setCurrentVersionId(Long currentVersionId) {
-        this.currentVersionId = currentVersionId;
+    public void setParentVersionId(Long parentVersionId) {
+        this.parentVersionId = parentVersionId;
     }
 
     public Long getCurrentBranchId() {
@@ -86,5 +87,13 @@ public class NewVersionModalDto {
 
     public void setPreviousVersionAnnotations(List<AnnotationResponseDto> previousVersionAnnotations) {
         this.previousVersionAnnotations = previousVersionAnnotations;
+    }
+
+    public boolean isCanCreateNewBranch() {
+        return canCreateNewBranch;
+    }
+
+    public void setCanCreateNewBranch(boolean canCreateNewBranch) {
+        this.canCreateNewBranch = canCreateNewBranch;
     }
 }

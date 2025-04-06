@@ -167,12 +167,6 @@ public class Project {
         this.projectOrder = projectOrder;
     }
 
-    public LocalDateTime getCreationDate() {
-        return createdDate;
-    }
-    public void setCreationDate(LocalDateTime creationDate) {
-        this.createdDate = creationDate;
-    }
 
     public LocalDateTime getLastUpdateDate() {
         return lastUpdateDate;

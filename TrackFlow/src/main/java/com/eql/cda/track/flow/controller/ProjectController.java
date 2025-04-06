@@ -8,9 +8,16 @@ import com.eql.cda.track.flow.dto.projectDto.ProjectViewDto;
 import com.eql.cda.track.flow.service.ProjectService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -18,18 +25,21 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/users/{userId}/projects")
+@RequestMapping("/api")
 public class ProjectController {
+
+    private static final Logger logger = LoggerFactory.getLogger(ProjectController.class);
 
     private ProjectService projectService;
 
-    @PostMapping
+    @PostMapping("/users/{userId}/projects")
     public ResponseEntity<ProjectCreateDto> createProject(
             @PathVariable Long userId, // <--- Récupération de l'ID depuis l'URL
             @Valid @RequestBody ProjectCreateDto projectCreateDto) {
@@ -63,7 +73,7 @@ public class ProjectController {
         // Catch d'autres exceptions métier spécifiques si nécessaire
     }
 
-    @GetMapping
+    @GetMapping("/users/{userId}/projects")
     public ResponseEntity<List<ProjectViewDto>> getAllUserProjects(@PathVariable Long userId) {
         try {
             // -----=====>>>>>> SÉCURITÉ CRITIQUE <<<<<<=====-----
@@ -97,7 +107,7 @@ public class ProjectController {
         }
     }
 
-    @GetMapping("/project/{id}")
+    @GetMapping("/users/{userId}/projects/project/{id}")
     public ResponseEntity<ProjectViewDto> getProjectById(@PathVariable Long id) {
         try {
             ProjectViewDto projectViewDto = projectService.getCurrentProjectInfo(id);
@@ -110,19 +120,27 @@ public class ProjectController {
         }
     }
 
-    @GetMapping("/recent")
-    public ResponseEntity<List<ProjectSummaryDto>> getRecentProjects() {
+    @GetMapping("/projects/recent")
+    public ResponseEntity<Page<ProjectSummaryDto>> getRecentProjects(
+            @RequestParam String login, // Pour l'instant, viendra de la sécurité plus tard
+            @PageableDefault(size = 5, sort = "createdDate", direction = Sort.Direction.DESC) Pageable pageable) {
+
+        logger.info("GET /api/projects/recent - Request for user '{}', pageable: {}", login, pageable);
+
         try {
-            List<ProjectSummaryDto> recentProjects = projectService.getRecentProjects(); // Appel inchangé, mais le retour est différent
+            Page<ProjectSummaryDto> recentProjects = projectService.findRecentProjectsForUser(login, pageable);
             return ResponseEntity.ok(recentProjects);
+        } catch (UsernameNotFoundException e) {
+            logger.warn("User not found for login: '{}'", login);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build(); // 404 si user inconnu
         } catch (Exception e) {
-            // Log l'erreur de préférence
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving recent projects summary", e);
+            logger.error("Error retrieving recent projects for user '{}': {}", login, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
 
-    @PatchMapping("/{id}")
+    @PatchMapping("/users/{userId}/projects/{id}")
     public ResponseEntity<Void> updateProject(
             @PathVariable Long id,
             @Valid @RequestBody ProjectUpdateDto projectUpdateDto) {

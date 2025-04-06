@@ -32,11 +32,6 @@ public class VersionInstrument {
     @Column(name = "instrument", nullable = false)
     private VersionInstrumentPreDefined instrument;
 
-    // --- Champs Optionnels Futurs ---
-    // private Integer volume;
-    // private Integer pan;
-    // ... autres réglages spécifiques à l'instrument pour cette version
-
     public VersionInstrument() {
     }
 
