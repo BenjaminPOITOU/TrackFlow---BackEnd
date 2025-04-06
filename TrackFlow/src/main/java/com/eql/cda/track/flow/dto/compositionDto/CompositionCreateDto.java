@@ -18,14 +18,11 @@ public class CompositionCreateDto {
     @NotBlank(message = "Composition title cannot be blank")
     private String title;
 
-    @Size(max = Constants.COMPOSITION_DESC_MAX_LENGTH, message = Constants.COMPOSITION_DESC_MAX_LENGTH_MSG)
-    @Column(length = Constants.COMPOSITION_DESC_MAX_LENGTH)
+
     @NotNull(message = "Composition Status cannot be null")
-    @NotBlank(message = "Composition Status cannot be blank")
     private CompositionStatus compositionStatus;
 
     @NotNull(message = "Composition subgender cannot be null")
-    @NotBlank(message = "Composition subgender cannot be blank")
     private List<String> subGender;
 
     private String description;

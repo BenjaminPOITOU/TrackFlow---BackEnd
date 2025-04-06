@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -153,33 +154,33 @@ public class VersionController {
         }
     }
 
-    // --- Endpoint pour Préparer la Modale de Création ---
-    /**
-     * Retrieves the necessary data to populate the 'new version' modal/form,
-     * based on the context of an existing version.
-     *
-     * @param currentVersionId The ID of the version the user is currently viewing or branching from.
-     * @return ResponseEntity containing the NewVersionModalDto or an error status.
-     */
-    @GetMapping("/versions/{currentVersionId}/prepare-new")
-    public ResponseEntity<NewVersionModalDto> getNewVersionModalData(@PathVariable Long currentVersionId) {
-        logger.info("GET /api/versions/{}/prepare-new - Preparing modal data.", currentVersionId);
+    @GetMapping("/compositions/{compositionId}/prepare-new-version")
+    public ResponseEntity<NewVersionModalDto> prepareNewVersionModalData(
+            @PathVariable Long compositionId,
+            @RequestParam(required = false) Long basedOnVersionId) { // ID parent optionnel
+
+        logger.info("GET /api/compositions/{}/prepare-new-version - Preparing modal data. Based on version ID: {}",
+                compositionId, Optional.ofNullable(basedOnVersionId).map(String::valueOf).orElse("None (First Version?)"));
         try {
-            NewVersionModalDto modalData = versionService.prepareNewVersionModalData(currentVersionId);
-            logger.debug("Modal data prepared successfully for version {}", currentVersionId);
+            // Appel du service modifié
+            NewVersionModalDto modalData = versionService.prepareNewVersionModalData(compositionId, Optional.ofNullable(basedOnVersionId));
+            logger.debug("Modal data prepared successfully for composition {}", compositionId);
             return ResponseEntity.ok(modalData);
         } catch (EntityNotFoundException e) {
-            logger.warn("Failed to prepare modal data: Version {} not found.", currentVersionId);
+            // Gérer si Composition ou basedOnVersionId n'est pas trouvé
+            logger.warn("Failed to prepare modal data: {}", e.getMessage());
             return ResponseEntity.notFound().build(); // 404
         } catch (IllegalStateException e) {
-            logger.error("Failed to prepare modal data for version {}: Data inconsistency - {}", currentVersionId, e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // 500 (Inconsistent Data)
+            logger.error("Failed to prepare modal data for composition {}: Data inconsistency - {}", compositionId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // 500
+        } catch (IllegalArgumentException e) { // Attraper validation explicite
+            logger.warn("Failed to prepare modal data for composition {}: Invalid argument - {}", compositionId, e.getMessage());
+            return ResponseEntity.badRequest().build(); // 400
         } catch (Exception e) {
-            logger.error("Failed to prepare modal data for version {}: Unexpected error - {}", currentVersionId, e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // 500 (Generic Error)
+            logger.error("Failed to prepare modal data for composition {}: Unexpected error - {}", compositionId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // 500
         }
     }
-
     // --- Endpoint pour Récupérer une Version par ID ---
     /**
      * Retrieves a specific version by its ID.
@@ -236,6 +237,45 @@ public class VersionController {
         } catch (Exception e) {
             logger.error("Error listing versions for composition {}: {}", compositionId, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // 500
+        }
+    }
+
+
+    @GetMapping("/latest-by-user")
+    public ResponseEntity<VersionResponseDto> getLatestVersionForUser(
+            // Pour l'instant, on identifie l'utilisateur via un paramètre
+            // Plus tard, tu remplaceras ça par @AuthenticationPrincipal
+            @RequestParam String login) {
+
+        logger.info("GET /api/versions/latest-by-user request for user '{}'", login);
+
+        try {
+            // Appel de la nouvelle méthode du service
+            Optional<VersionResponseDto> latestVersionDtoOpt = versionService.findLatestVersionForUser(login);
+
+            // Traitement de la réponse du service (Optional)
+            return latestVersionDtoOpt
+                    .map(dto -> {
+                        // Si une version est trouvée, retourne 200 OK avec le DTO
+                        logger.info("Found latest version (ID: {}) for user '{}'", dto.getId(), login); // Utilise le getter approprié pour l'ID
+                        return ResponseEntity.ok(dto);
+                    })
+                    .orElseGet(() -> {
+                        // Si aucune version n'est trouvée pour cet utilisateur (mais l'utilisateur existe), retourne 404 Not Found
+                        logger.info("No versions found for user '{}'", login);
+                        return ResponseEntity.notFound().build();
+                    });
+
+        } catch (UsernameNotFoundException e) {
+            // Si l'utilisateur lui-même n'est pas trouvé par le service
+            logger.warn("User not found when searching for latest version: login='{}'", login);
+            // Retourne 404 Not Found (l'utilisateur demandé n'existe pas)
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
+            // Pour toute autre erreur inattendue
+            logger.error("Error retrieving latest version for user '{}': {}", login, e.getMessage(), e);
+            // Retourne 500 Internal Server Error
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
