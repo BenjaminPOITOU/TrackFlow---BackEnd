@@ -16,7 +16,7 @@ public interface VersionService {
     VersionResponseDto createVersion(Long compositionId, VersionCreateDto dto);
     void deleteVersion(Long versionId);
     AudioUploadResponseDto uploadAudioAndExtractMetadata(MultipartFile file, String desiredPathPrefix) throws Exception;
-    NewVersionModalDto prepareNewVersionModalData(Long compositionId, Optional<Long> basedOnVersionId);
+    NewVersionModalDto prepareNewVersionModalDataForBranch(Long compositionId, Long targetBranchId);
     VersionDetailDto getVersionDetailsById(Long versionId);
     List<VersionSummaryDto> getVersionsForComposition(Long compositionId, Optional<Long> branchId);
     Optional<VersionResponseDto> findLatestVersionForUser(String username);

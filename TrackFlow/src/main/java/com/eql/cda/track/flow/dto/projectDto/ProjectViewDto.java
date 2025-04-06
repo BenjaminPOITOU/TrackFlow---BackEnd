@@ -6,7 +6,7 @@ import com.eql.cda.track.flow.entity.ProjectPurpose;
 import com.eql.cda.track.flow.entity.ProjectStatus;
 import com.eql.cda.track.flow.entity.ProjectType;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 
@@ -21,8 +21,8 @@ public class ProjectViewDto {
     private ProjectCommercialStatus projectCommercialStatus;
     private Set<ProjectPurpose> projectPurposes;
     private Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined;
-    private LocalDateTime creationDate;
-    private LocalDateTime updateDate;
+    private Instant creationDate;
+    private Instant updateDate;
     private Integer compositionsTotal;
 
 
@@ -30,7 +30,7 @@ public class ProjectViewDto {
     public ProjectViewDto() {
     }
 
-    public ProjectViewDto(Long id, String title, String description, String illustration, ProjectStatus projectStatus, ProjectType projectType, ProjectCommercialStatus projectCommercialStatus, Set<ProjectPurpose> projectPurposes, Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined, LocalDateTime creationDate, LocalDateTime updateDate, Integer compositionsTotal) {
+    public ProjectViewDto(Long id, String title, String description, String illustration, ProjectStatus projectStatus, ProjectType projectType, ProjectCommercialStatus projectCommercialStatus, Set<ProjectPurpose> projectPurposes, Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined, Instant creationDate, Instant updateDate, Integer compositionsTotal) {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -118,19 +118,19 @@ public class ProjectViewDto {
         this.projectMusicalGendersPreDefined = projectMusicalGendersPreDefined;
     }
 
-    public LocalDateTime getCreationDate() {
+    public Instant getCreationDate() {
         return creationDate;
     }
 
-    public void setCreationDate(LocalDateTime creationDate) {
+    public void setCreationDate(Instant creationDate) {
         this.creationDate = creationDate;
     }
 
-    public LocalDateTime getUpdateDate() {
+    public Instant getUpdateDate() {
         return updateDate;
     }
 
-    public void setUpdateDate(LocalDateTime updateDate) {
+    public void setUpdateDate(Instant updateDate) {
         this.updateDate = updateDate;
     }
 

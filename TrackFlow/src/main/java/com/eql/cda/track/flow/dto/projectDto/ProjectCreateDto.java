@@ -9,7 +9,7 @@ import com.eql.cda.track.flow.validation.Constants;
 import jakarta.persistence.Column;
 import jakarta.validation.constraints.Size;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 
@@ -32,14 +32,14 @@ public class ProjectCreateDto {
     private ProjectCommercialStatus projectCommercialStatus;
     private Set<ProjectPurpose> projectPurposes;
     private Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined;
-    private LocalDateTime creationDate;
+    private Instant creationDate;
 
 
     public ProjectCreateDto() {
     }
 
 
-    public ProjectCreateDto(Long id, String title, String description, String illustration, ProjectStatus projectStatus, ProjectType projectType, ProjectCommercialStatus projectCommercialStatus, Set<ProjectPurpose> projectPurposes, Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined, LocalDateTime creationDate) {
+    public ProjectCreateDto(Long id, String title, String description, String illustration, ProjectStatus projectStatus, ProjectType projectType, ProjectCommercialStatus projectCommercialStatus, Set<ProjectPurpose> projectPurposes, Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined, Instant creationDate) {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -124,11 +124,11 @@ public class ProjectCreateDto {
         this.projectMusicalGendersPreDefined = projectMusicalGendersPreDefined;
     }
 
-    public LocalDateTime getCreationDate() {
+    public Instant getCreationDate() {
         return creationDate;
     }
 
-    public void setCreationDate(LocalDateTime creationDate) {
+    public void setCreationDate(Instant creationDate) {
         this.creationDate = creationDate;
     }
 }

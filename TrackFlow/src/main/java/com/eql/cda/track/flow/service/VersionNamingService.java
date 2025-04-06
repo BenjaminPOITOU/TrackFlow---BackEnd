@@ -9,6 +9,7 @@ public interface VersionNamingService {
 
     String generateNextVersionName(Version parentVersion,Branch branch);
     String calculatePotentialNameForBranch(Long branchId);
+    String generateFirstVersionNameForBranch(Branch targetBranch);
     String generateFirstEverVersionName();
 
 }

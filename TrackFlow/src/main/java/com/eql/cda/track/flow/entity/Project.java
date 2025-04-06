@@ -24,7 +24,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 
 import java.util.HashSet;
@@ -53,14 +53,14 @@ public class Project {
 
     @CreatedDate
     @Column(nullable = false, updatable = false) // Bonnes pratiques audit
-    private LocalDateTime createdDate;
+    private Instant createdDate;
 
     @LastModifiedDate
     @Column(nullable = false) // Bonnes pratiques audit
-    private LocalDateTime lastUpdateDate;
+    private Instant lastUpdateDate;
 
-    private LocalDateTime supressionDate;
-    private LocalDateTime definitivSupressionDate;
+    private Instant supressionDate;
+    private Instant definitivSupressionDate;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -104,7 +104,7 @@ public class Project {
     public Project() {
     }
 
-    public Project(Long id, String title, String description, String illustration, boolean isArchived, Integer projectOrder, LocalDateTime createdDate, LocalDateTime lastUpdateDate, LocalDateTime supressionDate, LocalDateTime definitivSupressionDate, User user, Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined, Set<Composition> compositions, ProjectStatus projectStatus, ProjectType projectType, ProjectCommercialStatus projectCommercialStatus, Set<ProjectPurpose> projectPurposes) {
+    public Project(Long id, String title, String description, String illustration, boolean isArchived, Integer projectOrder, Instant createdDate, Instant lastUpdateDate, Instant supressionDate, Instant definitivSupressionDate, User user, Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined, Set<Composition> compositions, ProjectStatus projectStatus, ProjectType projectType, ProjectCommercialStatus projectCommercialStatus, Set<ProjectPurpose> projectPurposes) {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -168,25 +168,25 @@ public class Project {
     }
 
 
-    public LocalDateTime getLastUpdateDate() {
+    public Instant getLastUpdateDate() {
         return lastUpdateDate;
     }
-    public void setLastUpdateDate(LocalDateTime lastUpdateDate) {
+    public void setLastUpdateDate(Instant lastUpdateDate) {
         this.lastUpdateDate = lastUpdateDate;
     }
 
-    public LocalDateTime getSupressionDate() {
+    public Instant getSupressionDate() {
         return supressionDate;
     }
-    public void setSupressionDate(LocalDateTime supressionDate) {
+    public void setSupressionDate(Instant supressionDate) {
         this.supressionDate = supressionDate;
     }
 
-    public LocalDateTime getDefinitivSupressionDate() {
+    public Instant getDefinitivSupressionDate() {
         return definitivSupressionDate;
     }
 
-    public void setDefinitivSupressionDate(LocalDateTime definitivSupressionDate) {
+    public void setDefinitivSupressionDate(Instant definitivSupressionDate) {
         this.definitivSupressionDate = definitivSupressionDate;
     }
 
@@ -204,10 +204,10 @@ public class Project {
         isArchived = archived;
     }
 
-    public LocalDateTime getCreatedDate() {
+    public Instant getCreatedDate() {
         return createdDate;
     }
-    public void setCreatedDate(LocalDateTime createdDate) {
+    public void setCreatedDate(Instant createdDate) {
         this.createdDate = createdDate;
     }
 

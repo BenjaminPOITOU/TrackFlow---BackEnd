@@ -16,7 +16,7 @@ import org.hibernate.annotations.Where;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "annotations")
@@ -33,8 +33,8 @@ public class Annotation {
     private Float timePosition;
 
     @CreatedDate
-    private LocalDateTime creationDate;
-    private LocalDateTime supressionDate;
+    private Instant creationDate;
+    private Instant supressionDate;
     private boolean isResolved;
 
     @ManyToOne
@@ -51,7 +51,7 @@ public class Annotation {
     public Annotation() {
     }
 
-    public Annotation(Long id, String content, Float timePosition, LocalDateTime creationDate, LocalDateTime supressionDate, boolean isResolved, Version version, AnnotationCategory annotationCategory, AnnotationStatus annotationStatus) {
+    public Annotation(Long id, String content, Float timePosition, Instant creationDate, Instant supressionDate, boolean isResolved, Version version, AnnotationCategory annotationCategory, AnnotationStatus annotationStatus) {
         this.id = id;
         this.content = content;
         this.timePosition = timePosition;
@@ -84,17 +84,17 @@ public class Annotation {
         this.timePosition = timePosition;
     }
 
-    public LocalDateTime getCreationDate() {
+    public Instant getCreationDate() {
         return creationDate;
     }
-    public void setCreationDate(LocalDateTime creationDate) {
+    public void setCreationDate(Instant creationDate) {
         this.creationDate = creationDate;
     }
 
-    public LocalDateTime getSupressionDate() {
+    public Instant getSupressionDate() {
         return supressionDate;
     }
-    public void setSupressionDate(LocalDateTime supressionDate) {
+    public void setSupressionDate(Instant supressionDate) {
         this.supressionDate = supressionDate;
     }
 

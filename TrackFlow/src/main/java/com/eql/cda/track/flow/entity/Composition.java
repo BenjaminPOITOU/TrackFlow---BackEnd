@@ -7,7 +7,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -28,12 +28,12 @@ public class Composition {
     private String illustration;
 
     @CreatedDate
-    private LocalDateTime createdDate;
+    private Instant createdDate;
     @LastModifiedDate
-    private LocalDateTime lastUpdateDate;
+    private Instant lastUpdateDate;
 
-    private LocalDateTime suppressionDate;
-    private LocalDateTime definitivSupressionDate;
+    private Instant suppressionDate;
+    private Instant definitivSupressionDate;
 
 
     @ElementCollection(fetch = FetchType.LAZY) // LAZY est souvent préférable pour les collections
@@ -61,7 +61,7 @@ public class Composition {
     }
 
     // --- Constructeur mis à jour (sans les champs supprimés) ---
-    public Composition(Long id, String title, String description, Integer compositionOrder, String illustration, LocalDateTime createdDate, LocalDateTime lastUpdateDate, LocalDateTime suppressionDate, LocalDateTime definitivSupressionDate, List<String> subGenders, /* Supprimé */ /* Supprimé */ Project project, Set<Branch> branches, CompositionStatus compositionStatus) {
+    public Composition(Long id, String title, String description, Integer compositionOrder, String illustration, Instant createdDate, Instant lastUpdateDate, Instant suppressionDate, Instant definitivSupressionDate, List<String> subGenders, /* Supprimé */ /* Supprimé */ Project project, Set<Branch> branches, CompositionStatus compositionStatus) {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -116,31 +116,31 @@ public class Composition {
         this.illustration = illustration;
     }
 
-    public LocalDateTime getCreatedDate() {
+    public Instant getCreatedDate() {
         return createdDate;
     }
-    public void setCreatedDate(LocalDateTime createdDate) {
+    public void setCreatedDate(Instant createdDate) {
         this.createdDate = createdDate;
     }
 
-    public LocalDateTime getLastUpdateDate() {
+    public Instant getLastUpdateDate() {
         return lastUpdateDate;
     }
-    public void setLastUpdateDate(LocalDateTime lastUpdateDate) {
+    public void setLastUpdateDate(Instant lastUpdateDate) {
         this.lastUpdateDate = lastUpdateDate;
     }
 
-    public LocalDateTime getSuppressionDate() {
+    public Instant getSuppressionDate() {
         return suppressionDate;
     }
-    public void setSuppressionDate(LocalDateTime suppressionDate) {
+    public void setSuppressionDate(Instant suppressionDate) {
         this.suppressionDate = suppressionDate;
     }
 
-    public LocalDateTime getDefinitivSupressionDate() {
+    public Instant getDefinitivSupressionDate() {
         return definitivSupressionDate;
     }
-    public void setDefinitivSupressionDate(LocalDateTime definitivSupressionDate) {
+    public void setDefinitivSupressionDate(Instant definitivSupressionDate) {
         this.definitivSupressionDate = definitivSupressionDate;
     }
 

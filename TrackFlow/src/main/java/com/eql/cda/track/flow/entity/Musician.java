@@ -10,7 +10,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import org.checkerframework.common.aliasing.qual.Unique;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 import java.util.List;
 import java.util.Set;
@@ -37,7 +37,7 @@ public class Musician extends User{
     }
 
 
-    public Musician(Long id, String lastName, String firstName, @Unique String login, String password, LocalDateTime creationDate, LocalDateTime updateDate, LocalDateTime suppressionDate, List<Project> projects, UserRole userRole, Set<Access> accesses, String address, String mobile, String biography, String picture, List<Playlist> playlists) {
+    public Musician(Long id, String lastName, String firstName, @Unique String login, String password, Instant creationDate, Instant updateDate, Instant suppressionDate, List<Project> projects, UserRole userRole, Set<Access> accesses, String address, String mobile, String biography, String picture, List<Playlist> playlists) {
         super(id, lastName, firstName, login, password, creationDate, updateDate, suppressionDate, projects, userRole, accesses);
         this.address = address;
         this.mobile = mobile;

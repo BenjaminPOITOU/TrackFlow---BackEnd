@@ -21,10 +21,11 @@ import com.eql.cda.track.flow.service.implementation.UserServiceImpl;
 import com.eql.cda.track.flow.entity.*;
 import com.eql.cda.track.flow.exception.*;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Optional;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @ExtendWith(MockitoExtension.class) // Permet d'utiliser les annotations Mockito
 class UserServiceImplTest {
@@ -94,8 +95,8 @@ class UserServiceImplTest {
         testMusician.setAddress("1 Music Avenue");
         testMusician.setMobile("0101010101");
         testMusician.setBiography("Initial Producer Bio");
-        testMusician.setCreationDate(LocalDateTime.now().minusDays(5)); // Date factice passée
-        testMusician.setUpdateDate(LocalDateTime.now().minusDays(1)); // Date factice passée
+        testMusician.setCreationDate(Instant.now().minus(Duration.ofDays(5))); // CORRIGÉ
+        testMusician.setUpdateDate(Instant.now().minus(Duration.ofDays(1))); // Date factice passée
         testMusician.setProjects(new ArrayList<>()); // Initialiser les collections pour éviter NPE
         testMusician.setAccesses(new HashSet<>());
         testMusician.setPlaylists(new ArrayList<>());
@@ -108,8 +109,8 @@ class UserServiceImplTest {
         testListener.setFirstName("Vicky");
         testListener.setLastName("Visitor");
         testListener.setUserRole(UserRole.VISITOR);
-        testListener.setCreationDate(LocalDateTime.now().minusDays(10));
-        testListener.setUpdateDate(LocalDateTime.now().minusDays(2));
+        testListener.setCreationDate(Instant.now().minus(Duration.ofDays(10))); // CORRIGÉ
+        testListener.setUpdateDate(Instant.now().minus(Duration.ofDays(2)));
         testListener.setProjects(new ArrayList<>());
         testListener.setAccesses(new HashSet<>());
         // Listenner n'a pas de champs spécifiques à initialiser
@@ -308,8 +309,8 @@ class UserServiceImplTest {
             Musician saved = invocation.getArgument(0);
             saved.setId(5L); // Simuler l'assignation d'un ID
             // Simuler l'audit:
-            saved.setCreationDate(LocalDateTime.now());
-            saved.setUpdateDate(LocalDateTime.now());
+            saved.setCreationDate(Instant.now());
+            saved.setUpdateDate(Instant.now());
             return saved;
         });
 
@@ -340,8 +341,8 @@ class UserServiceImplTest {
         when(userRepository.save(any(Listenner.class))).thenAnswer(invocation -> {
             Listenner saved = invocation.getArgument(0);
             saved.setId(6L);
-            saved.setCreationDate(LocalDateTime.now());
-            saved.setUpdateDate(LocalDateTime.now());
+            saved.setCreationDate(Instant.now());
+            saved.setUpdateDate(Instant.now());
             return saved;
         });
 

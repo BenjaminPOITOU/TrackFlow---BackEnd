@@ -19,7 +19,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 
 @Service
@@ -161,7 +161,7 @@ public class UserServiceImpl implements UserService {
 
         // TODO: !! SÉCURITÉ !! Remplacer immédiatement par l'encodage avec PasswordEncoder
         newUser.setPassword(registrationDto.getPassword());
-        newUser.setCreationDate(LocalDateTime.now());
+        newUser.setCreationDate(Instant.now());
         User savedUser = userRepository.save(newUser);
 
         return savedUser;

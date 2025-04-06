@@ -14,7 +14,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 
 @Entity
@@ -24,8 +24,8 @@ public class Access {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private LocalDateTime creationDate;
-    private LocalDateTime endOfPermission;
+    private Instant creationDate;
+    private Instant endOfPermission;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -42,7 +42,7 @@ public class Access {
     public Access() {
     }
 
-    public Access(Long id, LocalDateTime creationDate, LocalDateTime endOfPermission, User recipient, Version version, AnnotationRight annotationRight) {
+    public Access(Long id, Instant creationDate, Instant endOfPermission, User recipient, Version version, AnnotationRight annotationRight) {
         this.id = id;
         this.creationDate = creationDate;
         this.endOfPermission = endOfPermission;
@@ -54,10 +54,10 @@ public class Access {
     public Long getId() {
         return id;
     }
-    public LocalDateTime getCreationDate() {
+    public Instant getCreationDate() {
         return creationDate;
     }
-    public LocalDateTime getEndOfPermission() {
+    public Instant getEndOfPermission() {
         return endOfPermission;
     }
     public User getRecipient() {
@@ -73,10 +73,10 @@ public class Access {
     public void setId(Long id) {
         this.id = id;
     }
-    public void setCreationDate(LocalDateTime creationDate) {
+    public void setCreationDate(Instant creationDate) {
         this.creationDate = creationDate;
     }
-    public void setEndOfPermission(LocalDateTime endOfPermission) {
+    public void setEndOfPermission(Instant endOfPermission) {
         this.endOfPermission = endOfPermission;
     }
     public void setRecipient(User recipient) {

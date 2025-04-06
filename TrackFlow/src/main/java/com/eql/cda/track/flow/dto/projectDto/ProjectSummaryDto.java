@@ -2,7 +2,7 @@ package com.eql.cda.track.flow.dto.projectDto;
 
 import com.eql.cda.track.flow.entity.ProjectStatus;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 public class ProjectSummaryDto {
@@ -11,11 +11,11 @@ public class ProjectSummaryDto {
     private String title;
     private ProjectStatus projectStatus;
     private List<String> musicalGenres;
-    private LocalDateTime lastUpdateDate;
+    private Instant lastUpdateDate;
 
     public ProjectSummaryDto() {
     }
-    public ProjectSummaryDto(Long id, String title, ProjectStatus projectStatus, List<String> musicalGenres, LocalDateTime lastUpdateDate) {
+    public ProjectSummaryDto(Long id, String title, ProjectStatus projectStatus, List<String> musicalGenres, Instant lastUpdateDate) {
         this.id = id;
         this.title = title;
         this.projectStatus = projectStatus;
@@ -52,10 +52,10 @@ public class ProjectSummaryDto {
         this.musicalGenres = musicalGenres;
     }
 
-    public LocalDateTime getLastUpdateDate() {
+    public Instant getLastUpdateDate() {
         return lastUpdateDate;
     }
-    public void setLastUpdateDate(LocalDateTime lastUpdateDate) {
+    public void setLastUpdateDate(Instant lastUpdateDate) {
         this.lastUpdateDate = lastUpdateDate;
     }
 }

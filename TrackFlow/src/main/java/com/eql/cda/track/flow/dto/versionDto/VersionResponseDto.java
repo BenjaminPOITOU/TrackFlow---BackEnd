@@ -1,6 +1,6 @@
 package com.eql.cda.track.flow.dto.versionDto;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Map;
 import java.util.Set;
 
@@ -15,7 +15,7 @@ public class VersionResponseDto {
     private String branchDescription;
     private String audioFileUrl;
     private Map<String, String> metadata;
-    private LocalDateTime createdDate;
+    private Instant createdDate;
     private Long branchId;
     private String branchName;
     // Simplifié : juste les noms des instruments
@@ -23,7 +23,7 @@ public class VersionResponseDto {
 
     public VersionResponseDto() {
     }
-    public VersionResponseDto(Long id, String name, String author, String bpm, String key, Integer durationSeconds, String branchDescription, String audioFileUrl, Map<String, String> metadata, LocalDateTime createdDate, Long branchId, String branchName, Set<String> instruments) {
+    public VersionResponseDto(Long id, String name, String author, String bpm, String key, Integer durationSeconds, String branchDescription, String audioFileUrl, Map<String, String> metadata, Instant createdDate, Long branchId, String branchName, Set<String> instruments) {
         this.id = id;
         this.name = name;
         this.author = author;
@@ -67,7 +67,7 @@ public class VersionResponseDto {
     public Map<String, String> getMetadata() {
         return metadata;
     }
-    public LocalDateTime getCreatedDate() {
+    public Instant getCreatedDate() {
         return createdDate;
     }
     public Long getBranchId() {
@@ -107,7 +107,7 @@ public class VersionResponseDto {
     public void setMetadata(Map<String, String> metadata) {
         this.metadata = metadata;
     }
-    public void setCreatedDate(LocalDateTime createdDate) {
+    public void setCreatedDate(Instant createdDate) {
         this.createdDate = createdDate;
     }
     public void setBranchId(Long branchId) {
