@@ -10,17 +10,18 @@ public class ProjectSummaryDto {
     private Long id; // <-- Important pour le routing frontend !
     private String title;
     private ProjectStatus projectStatus;
-    private List<String> musicalGenres;
-    private Instant lastUpdateDate;
+    private List<String> projectMusicalGendersPreDefined;
+    private Instant createdDate;
+
 
     public ProjectSummaryDto() {
     }
-    public ProjectSummaryDto(Long id, String title, ProjectStatus projectStatus, List<String> musicalGenres, Instant lastUpdateDate) {
+    public ProjectSummaryDto(Long id, String title, ProjectStatus projectStatus, List<String> projectMusicalGendersPreDefined, Instant createdDate) {
         this.id = id;
         this.title = title;
         this.projectStatus = projectStatus;
-        this.musicalGenres = musicalGenres;
-        this.lastUpdateDate = lastUpdateDate;
+        this.projectMusicalGendersPreDefined = projectMusicalGendersPreDefined;
+        this.createdDate = createdDate;
     }
 
 
@@ -45,17 +46,17 @@ public class ProjectSummaryDto {
         this.projectStatus = projectStatus;
     }
 
-    public List<String> getMusicalGenres() {
-        return musicalGenres;
+    public List<String> getProjectMusicalGendersPreDefined() {
+        return projectMusicalGendersPreDefined;
     }
-    public void setMusicalGenres(List<String> musicalGenres) {
-        this.musicalGenres = musicalGenres;
+    public void setProjectMusicalGendersPreDefined(List<String> projectMusicalGendersPreDefined) {
+        this.projectMusicalGendersPreDefined = projectMusicalGendersPreDefined;
     }
 
-    public Instant getLastUpdateDate() {
-        return lastUpdateDate;
+    public Instant getCreatedDate() {
+        return createdDate;
     }
-    public void setLastUpdateDate(Instant lastUpdateDate) {
-        this.lastUpdateDate = lastUpdateDate;
+    public void setCreatedDate(Instant updateDate) {
+        this.createdDate = updateDate;
     }
 }

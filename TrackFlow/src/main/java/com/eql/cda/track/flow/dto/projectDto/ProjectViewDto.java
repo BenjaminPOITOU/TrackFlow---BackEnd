@@ -7,7 +7,6 @@ import com.eql.cda.track.flow.entity.ProjectStatus;
 import com.eql.cda.track.flow.entity.ProjectType;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.Set;
 
 public class ProjectViewDto {
@@ -21,7 +20,7 @@ public class ProjectViewDto {
     private ProjectCommercialStatus projectCommercialStatus;
     private Set<ProjectPurpose> projectPurposes;
     private Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined;
-    private Instant creationDate;
+    private Instant createdDate;
     private Instant updateDate;
     private Integer compositionsTotal;
 
@@ -30,7 +29,7 @@ public class ProjectViewDto {
     public ProjectViewDto() {
     }
 
-    public ProjectViewDto(Long id, String title, String description, String illustration, ProjectStatus projectStatus, ProjectType projectType, ProjectCommercialStatus projectCommercialStatus, Set<ProjectPurpose> projectPurposes, Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined, Instant creationDate, Instant updateDate, Integer compositionsTotal) {
+    public ProjectViewDto(Long id, String title, String description, String illustration, ProjectStatus projectStatus, ProjectType projectType, ProjectCommercialStatus projectCommercialStatus, Set<ProjectPurpose> projectPurposes, Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined, Instant createdDate, Instant updateDate, Integer compositionsTotal) {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -40,7 +39,7 @@ public class ProjectViewDto {
         this.projectCommercialStatus = projectCommercialStatus;
         this.projectPurposes = projectPurposes;
         this.projectMusicalGendersPreDefined = projectMusicalGendersPreDefined;
-        this.creationDate = creationDate;
+        this.createdDate = createdDate;
         this.updateDate = updateDate;
         this.compositionsTotal = compositionsTotal;
     }
@@ -118,12 +117,12 @@ public class ProjectViewDto {
         this.projectMusicalGendersPreDefined = projectMusicalGendersPreDefined;
     }
 
-    public Instant getCreationDate() {
-        return creationDate;
+    public Instant getCreatedDate() {
+        return createdDate;
     }
 
-    public void setCreationDate(Instant creationDate) {
-        this.creationDate = creationDate;
+    public void setCreatedDate(Instant createdDate) {
+        this.createdDate = createdDate;
     }
 
     public Instant getUpdateDate() {

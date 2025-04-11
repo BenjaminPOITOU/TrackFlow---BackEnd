@@ -12,8 +12,8 @@ import java.util.List;
 
 public interface ProjectService {
     ProjectCreateDto createProject(Long userId, ProjectCreateDto projectCreateDto);
-    List<ProjectViewDto> getAllProjects(Long userId);
     ProjectViewDto getCurrentProjectInfo(Long id);
+    Page<ProjectViewDto> getAllProjectsPaginated(Long userId, Pageable pageable);
     Page<ProjectSummaryDto> findRecentProjectsForUser(String username, Pageable pageable);
     void updateProject(Long id, ProjectUpdateDto projectUpdateDto);
     void archiveProject(long id);

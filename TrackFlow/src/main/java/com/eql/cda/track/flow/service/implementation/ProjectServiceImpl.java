@@ -15,17 +15,15 @@ import com.eql.cda.track.flow.service.ProjectService;
 import com.eql.cda.track.flow.validation.Constants;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import org.springframework.data.domain.Pageable;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
@@ -37,11 +35,10 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static com.eql.cda.track.flow.validation.Constants.RECENT_PROJECT_COUNT;
-
 @Service
 public class ProjectServiceImpl implements ProjectService {
 
+    private static final Logger logger = LoggerFactory.getLogger(ProjectServiceImpl.class);
     ///  CLASSES - INVERSION DE DEPENDANCE ///
     ProjectRepository projectRepository;
     UserRepository userRepository;
@@ -127,28 +124,34 @@ public class ProjectServiceImpl implements ProjectService {
             return recentProjectsPage.map(this::mapEntityToProjectSummaryDto);
         }
 
-        @Override
-        @Transactional
-        public List<ProjectViewDto> getAllProjects (Long userId){
+    @Override
+    @Transactional
+    public Page<ProjectViewDto> getAllProjectsPaginated(Long userId, Pageable pageable) {
+        logger.debug("Fetching paginated projects for user ID: {} with pageable: {}", userId, pageable);
 
-            if (userId == null) {
-                throw new IllegalArgumentException("User ID cannot be null");
-            }
-
-            List<Project> userProjects = projectRepository.findByUserIdWithFullDetails(userId);
-
-            if (userProjects == null || userProjects.isEmpty()) {
-                return new ArrayList<>();
-            }
-            List<ProjectViewDto> projectDtos = userProjects.stream()
-                    .map(this::mapEntityToProjectViewDto)
-                    .collect(Collectors.toList());
-
-            // Retourne la liste des DTOs mappés
-            return projectDtos;
-
+        if (userId == null) {
+            throw new IllegalArgumentException("User ID cannot be null");
         }
 
+        // Optionnel mais recommandé : Vérifier si l'utilisateur existe
+        // Si userRepository.existsById renvoie false, lève EntityNotFoundException
+        if (!userRepository.existsById(userId)) {
+            logger.warn("User not found with ID: {}", userId);
+            throw new EntityNotFoundException("User not found with id: " + userId);
+        }
+
+        Page<Project> userProjectsPage = projectRepository.findByUserId(userId, pageable); //
+
+
+        // Mappe la Page<Project> en Page<ProjectViewDto>
+        // La méthode 'map' de l'objet Page fait ça facilement
+        Page<ProjectViewDto> projectDtosPage = userProjectsPage.map(this::mapEntityToProjectViewDto);
+
+        logger.debug("Returning page {} of {} projects (total {}) for user ID: {}",
+                projectDtosPage.getNumber(), projectDtosPage.getNumberOfElements(), projectDtosPage.getTotalElements(), userId);
+
+        return projectDtosPage;
+    }
         @Override
         @Transactional
         public void updateProject (Long projectId, ProjectUpdateDto projectUpdateDto){
@@ -313,7 +316,7 @@ public class ProjectServiceImpl implements ProjectService {
             dto.setId(project.getId());
             dto.setTitle(project.getTitle());
             dto.setProjectStatus(project.getProjectStatus());
-            dto.setLastUpdateDate(project.getLastUpdateDate()); // Assurez-vous que le champ s'appelle bien ainsi
+            dto.setCreatedDate(project.getCreatedDate()); // Assurez-vous que le champ s'appelle bien ainsi
 
             // Construire la liste simplifiée des genres musicaux
             List<String> genreNames = new ArrayList<>();
@@ -322,7 +325,7 @@ public class ProjectServiceImpl implements ProjectService {
                 predefinedGenres.forEach(genreEnum -> genreNames.add(genreEnum.name())); // Ou une autre représentation textuelle si l'enum a une méthode dédiée
             }
 
-            dto.setMusicalGenres(genreNames);
+            dto.setProjectMusicalGendersPreDefined(genreNames);
 
             return dto;
         }
@@ -361,7 +364,7 @@ public class ProjectServiceImpl implements ProjectService {
              dto.setCompositionsTotal(project.getCompositions() != null ? project.getCompositions().size() : 0); // ATTENTION ICI !
              dto.setProjectPurposes(project.getProjectPurposes() != null ? new HashSet<>(project.getProjectPurposes()) : new HashSet<>()); // ATTENTION ICI !
              dto.setProjectMusicalGendersPreDefined(project.getProjectMusicalGendersPreDefined() != null ? new HashSet<>(project.getProjectMusicalGendersPreDefined()) : new HashSet<>()); // ATTENTION ICI !
-             dto.setCreationDate(project.getCreatedDate());
+             dto.setCreatedDate(project.getCreatedDate());
              dto.setUpdateDate(project.getLastUpdateDate());
 
             System.out.println("Finished basic mapping for Project ID: " + project.getId()); // Log de sortie

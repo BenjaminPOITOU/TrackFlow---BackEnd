@@ -18,6 +18,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -33,6 +34,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api")
+@CrossOrigin(origins = "http://localhost:3000")
 public class ProjectController {
 
     private static final Logger logger = LoggerFactory.getLogger(ProjectController.class);
@@ -74,38 +76,53 @@ public class ProjectController {
     }
 
     @GetMapping("/users/{userId}/projects")
-    public ResponseEntity<List<ProjectViewDto>> getAllUserProjects(@PathVariable Long userId) {
+    public ResponseEntity<Page<ProjectViewDto>> getAllUserProjects(
+            @PathVariable Long userId,
+            // Applique des valeurs par défaut si les paramètres ne sont pas fournis dans l'URL
+            // Ex: Par défaut, page 0, 10 éléments par page, trié par updateDate décroissant
+            @PageableDefault(size = 10, sort = "createdDate", direction = Sort.Direction.DESC)
+            Pageable pageable // Spring injecte le Pageable final (défauts ou params URL)
+    ) {
+        // Log initial avec l'ID utilisateur et le pageable appliqué
+        logger.info("GET /api/users/{}/projects - Request received with pageable: {}", userId, pageable);
+
         try {
-            // -----=====>>>>>> SÉCURITÉ CRITIQUE <<<<<<=====-----
-            // Il est ABSOLUMENT INDISPENSABLE de vérifier ici que l'utilisateur
-            // authentifié (celui qui fait l'appel API) a le droit de voir les projets
-            // de l'{userId} spécifié dans l'URL.
-            // Typiquement, un utilisateur ne devrait pouvoir accéder qu'à ses propres projets,
-            // sauf s'il est administrateur.
-            // Exemple de vérification (simpliste, à adapter avec Spring Security):
-            // String authenticatedUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-            // User authenticatedUser = userRepository.findByLogin(authenticatedUsername); // Ou via un service
-            // if (!authenticatedUser.getId().equals(userId) && !/* estAdmin(authenticatedUser) */) {
-            //    throw new AccessDeniedException("User not authorized to access projects for user ID: " + userId);
-            // }
-            // -----=====>>>>>> FIN SÉCURITÉ CRITIQUE <<<<<<=====-----
+            // Appelle la méthode de service paginée
+            // Assure-toi que cette méthode existe bien dans ton service/implémentation
+            Page<ProjectViewDto> projectsPage = projectService.getAllProjectsPaginated(userId, pageable);
 
+            // Log succès avant de retourner
+            logger.info("Successfully retrieved {} projects for user {} (page {} of {})",
+                    projectsPage.getNumberOfElements(), userId, projectsPage.getNumber(), projectsPage.getTotalPages());
 
-            List<ProjectViewDto> projects = projectService.getAllProjects(userId);
-            return ResponseEntity.ok(projects);
+            // Retourne la page de projets avec un statut OK (200)
+            return ResponseEntity.ok(projectsPage);
+
         } catch (EntityNotFoundException e) {
-            // Si l'utilisateur {userId} lui-même n'est pas trouvé par le service
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
+            // Spécifiquement si l'utilisateur {userId} n'existe pas (levé par le service)
+            logger.warn("User not found with ID: {}", userId);
+            // Utilise ResponseStatusException pour inclure le message et causer un log d'erreur approprié
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found with id: " + userId, e);
+            // Alternativement, retourne directement comme dans l'exemple /recent :
+            // return ResponseEntity.status(HttpStatus.NOT_FOUND).build(); // Moins d'info dans la réponse
+
         } catch (IllegalArgumentException e) {
-            // Si l'ID utilisateur est invalide (ex: null)
+            // Si l'ID ou un paramètre est invalide (ex: userId null passé au service)
+            logger.warn("Invalid argument provided for user projects request (userId: {}): {}", userId, e.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
-            // } catch (AccessDeniedException e) { // Si vous implémentez la vérification de sécurité
-            //     throw new ResponseStatusException(HttpStatus.FORBIDDEN, e.getMessage(), e);
+            // Alternative:
+            // return ResponseEntity.badRequest().build();
+
         } catch (Exception e) {
             // Gérer les autres erreurs inattendues
+            logger.error("Unexpected error retrieving projects for user {}: {}", userId, e.getMessage(), e);
+            // Utilise ResponseStatusException pour un meilleur logging et une réponse d'erreur serveur
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving user projects", e);
+            // Alternative:
+            // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
 
     @GetMapping("/users/{userId}/projects/project/{id}")
     public ResponseEntity<ProjectViewDto> getProjectById(@PathVariable Long id) {
