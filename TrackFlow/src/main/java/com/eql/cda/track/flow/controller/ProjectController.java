@@ -1,6 +1,5 @@
 package com.eql.cda.track.flow.controller;
 
-
 import com.eql.cda.track.flow.dto.projectDto.ProjectCreateDto;
 import com.eql.cda.track.flow.dto.projectDto.ProjectSummaryDto;
 import com.eql.cda.track.flow.dto.projectDto.ProjectUpdateDto;
@@ -17,195 +16,243 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+// Assurez-vous d'importer UsernameNotFoundException si elle est utilisée
+// import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.web.bind.annotation.*; // Import global pour les annotations
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.List;
+// Importez ceci si vous voulez utiliser la sécurité au niveau méthode
+// import org.springframework.security.access.prepost.PreAuthorize;
+
 
 @RestController
-@RequestMapping("/api")
-@CrossOrigin(origins = "http://localhost:3000")
+// ---> Chemin de base pour toutes les méthodes liées aux projets d'un utilisateur <---
+@RequestMapping("/api/users/{userId}/projects")
+// ---> Configuration CORS pour ce contrôleur <---
+@CrossOrigin(origins = "http://localhost:3000", methods = {
+        RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT,
+        RequestMethod.PATCH, RequestMethod.DELETE, RequestMethod.OPTIONS
+})
 public class ProjectController {
 
     private static final Logger logger = LoggerFactory.getLogger(ProjectController.class);
 
-    private ProjectService projectService;
+    private final ProjectService projectService; // Injection par constructeur recommandée
 
-    @PostMapping("/users/{userId}/projects")
-    public ResponseEntity<ProjectCreateDto> createProject(
-            @PathVariable Long userId, // <--- Récupération de l'ID depuis l'URL
-            @Valid @RequestBody ProjectCreateDto projectCreateDto) {
-
-        // --- Considération de Sécurité Importante ---
-        // !!! ATTENTION !!!
-        // Maintenant que l'ID utilisateur est fourni par le client, vous DEVEZ ABSOLUMENT vérifier
-        // que l'utilisateur actuellement authentifié (via Spring Security Context)
-        // a le droit de créer un projet pour cet `userId`.
-        // Soit l'utilisateur authentifié EST `userId`, soit il a un rôle d'administrateur.
-        // Cette vérification devrait idéalement se faire DANS LE SERVICE ou via
-        // la sécurité au niveau méthode (@PreAuthorize("#userId == authentication.principal.id or hasRole('ADMIN')")).
-        // Sans cette vérification, n'importe quel utilisateur authentifié pourrait créer
-        // un projet pour n'importe quel autre utilisateur en changeant l'URL !
-        // Exemple de vérification à ajouter (simpliste) :
-        // checkUserPermission(userId); // Méthode à implémenter qui vérifie le contexte de sécurité actuel
-        // -------------------------------------------
-
-        try {
-            // On passe directement le userId reçu en paramètre
-            ProjectCreateDto createdProject = projectService.createProject(userId, projectCreateDto);
-            // Retourner le projet créé
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdProject);
-        } catch (IllegalArgumentException e) {
-            // Ex: Utilisateur non trouvé par le service, champ obligatoire manquant (si non géré par @Valid)
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
-        } catch (EntityNotFoundException e) {
-            // Si le service lève cette exception spécifiquement pour l'utilisateur non trouvé
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Creator user not found with ID: " + userId, e);
-        }
-        // Catch d'autres exceptions métier spécifiques si nécessaire
+    // ---> Injection par Constructeur (Préférable à @Autowired sur setter/field) <---
+    @Autowired
+    public ProjectController(ProjectService projectService) {
+        this.projectService = projectService;
     }
 
-    @GetMapping("/users/{userId}/projects")
+    /**
+     * Crée un nouveau projet pour un utilisateur spécifié.
+     */
+    // @PreAuthorize("#userId == principal.id or hasRole('ADMIN')") // Exemple Sécurité
+    @PostMapping // Mappe sur POST /api/users/{userId}/projects
+    public ResponseEntity<ProjectCreateDto> createProject(
+            @PathVariable Long userId,
+            @Valid @RequestBody ProjectCreateDto projectCreateDto) {
+        logger.info("POST /api/users/{}/projects - Request received", userId);
+        // !!! Ajoutez ici la vérification de sécurité pour s'assurer que l'utilisateur
+        // authentifié a le droit de créer pour cet userId !!!
+        try {
+            ProjectCreateDto createdProject = projectService.createProject(userId, projectCreateDto);
+            logger.info("Project created successfully with ID {} for user {}", createdProject.getId(), userId); // Supposant que DTO a un ID
+            return ResponseEntity.status(HttpStatus.CREATED).body(createdProject);
+        } catch (IllegalArgumentException | EntityNotFoundException e) {
+            // Gérer utilisateur non trouvé ou argument invalide
+            logger.warn("Bad request creating project for user {}: {}", userId, e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
+        } catch (Exception e) {
+            logger.error("Error creating project for user {}: {}", userId, e.getMessage(), e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Could not create project", e);
+        }
+    }
+
+    /**
+     * Récupère la liste paginée de tous les projets pour un utilisateur spécifié.
+     */
+    // @PreAuthorize("#userId == principal.id or hasRole('ADMIN')") // Exemple Sécurité
+    @GetMapping // Mappe sur GET /api/users/{userId}/projects
     public ResponseEntity<Page<ProjectViewDto>> getAllUserProjects(
             @PathVariable Long userId,
-            // Applique des valeurs par défaut si les paramètres ne sont pas fournis dans l'URL
-            // Ex: Par défaut, page 0, 10 éléments par page, trié par updateDate décroissant
-            @PageableDefault(size = 10, sort = "createdDate", direction = Sort.Direction.DESC)
-            Pageable pageable // Spring injecte le Pageable final (défauts ou params URL)
-    ) {
-        // Log initial avec l'ID utilisateur et le pageable appliqué
+            @PageableDefault(size = 10, sort = "createdDate", direction = Sort.Direction.DESC) Pageable pageable) {
         logger.info("GET /api/users/{}/projects - Request received with pageable: {}", userId, pageable);
-
+        // !!! Ajoutez ici la vérification de sécurité si nécessaire (ex: l'utilisateur voit-il ses propres projets?) !!!
         try {
-            // Appelle la méthode de service paginée
-            // Assure-toi que cette méthode existe bien dans ton service/implémentation
             Page<ProjectViewDto> projectsPage = projectService.getAllProjectsPaginated(userId, pageable);
-
-            // Log succès avant de retourner
-            logger.info("Successfully retrieved {} projects for user {} (page {} of {})",
+            logger.info("Retrieved {} projects for user {} (page {} of {})",
                     projectsPage.getNumberOfElements(), userId, projectsPage.getNumber(), projectsPage.getTotalPages());
-
-            // Retourne la page de projets avec un statut OK (200)
             return ResponseEntity.ok(projectsPage);
-
-        } catch (EntityNotFoundException e) {
-            // Spécifiquement si l'utilisateur {userId} n'existe pas (levé par le service)
-            logger.warn("User not found with ID: {}", userId);
-            // Utilise ResponseStatusException pour inclure le message et causer un log d'erreur approprié
+        } catch (EntityNotFoundException e) { // Si le service lève pour l'utilisateur
+            logger.warn("User not found for ID: {}", userId);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found with id: " + userId, e);
-            // Alternativement, retourne directement comme dans l'exemple /recent :
-            // return ResponseEntity.status(HttpStatus.NOT_FOUND).build(); // Moins d'info dans la réponse
-
-        } catch (IllegalArgumentException e) {
-            // Si l'ID ou un paramètre est invalide (ex: userId null passé au service)
-            logger.warn("Invalid argument provided for user projects request (userId: {}): {}", userId, e.getMessage());
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
-            // Alternative:
-            // return ResponseEntity.badRequest().build();
-
         } catch (Exception e) {
-            // Gérer les autres erreurs inattendues
-            logger.error("Unexpected error retrieving projects for user {}: {}", userId, e.getMessage(), e);
-            // Utilise ResponseStatusException pour un meilleur logging et une réponse d'erreur serveur
+            logger.error("Error retrieving projects for user {}: {}", userId, e.getMessage(), e);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving user projects", e);
-            // Alternative:
-            // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
-
-    @GetMapping("/users/{userId}/projects/project/{id}")
-    public ResponseEntity<ProjectViewDto> getProjectById(@PathVariable Long id) {
+    /**
+     * Récupère les détails d'un projet spécifique pour un utilisateur.
+     */
+    // @PreAuthorize("hasPermission(#projectId, 'com.yourpackage.Project', 'read') or hasRole('ADMIN')") // Exemple sécurité basée sur ressource
+    // Ou vérifier dans le service que l'utilisateur authentifié a accès au projet de cet userId
+    @GetMapping("/{projectId}") // Mappe sur GET /api/users/{userId}/projects/{projectId}
+    public ResponseEntity<ProjectViewDto> getProjectById(
+            @PathVariable Long userId, // Utilisé pour vérifier les droits
+            @PathVariable Long projectId) {
+        logger.info("GET /api/users/{}/projects/{} - Request received", userId, projectId);
+        // !!! Ajoutez ici la vérification de sécurité : l'utilisateur {userId} a-t-il accès à {projectId}? !!!
         try {
-            ProjectViewDto projectViewDto = projectService.getCurrentProjectInfo(id);
+            // Idéalement, la méthode de service prend aussi userId pour vérifier la propriété/permission
+            ProjectViewDto projectViewDto = projectService.getProjectByIdAndUser(projectId, userId); // Nom de méthode exemple
+            logger.info("Project details retrieved for project ID {}", projectId);
             return ResponseEntity.ok(projectViewDto);
         } catch (EntityNotFoundException e) {
+            logger.warn("Project or User not found for project ID {} / user ID {}: {}", projectId, userId, e.getMessage());
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
-        } catch (IllegalArgumentException e) {
-            // Ex: ID null ou invalide passé au service
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
+        } catch (SecurityException e) { // Si le service lève une exception de sécurité
+            logger.warn("Access denied for user {} on project {}: {}", userId, projectId, e.getMessage());
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, e.getMessage(), e);
+        } catch (Exception e) {
+            logger.error("Error retrieving project {} for user {}: {}", projectId, userId, e.getMessage(), e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving project details", e);
         }
     }
 
-    @GetMapping("/projects/recent")
+    // --- Méthode getRecentProjects ---
+    // Cette méthode ne s'intègre pas bien au @RequestMapping de la classe.
+    // Elle devrait soit être dans un contrôleur différent (ex: GeneralProjectController)
+    // soit le RequestMapping de la classe devrait être plus général ("/api") et les chemins
+    // de chaque méthode plus longs.
+    // Solution de contournement: Mettre dans un sous-chemin improbable ou dans un autre contrôleur.
+    // --> Placé dans un autre contrôleur serait plus propre. <--
+
+
+    /**
+     * Met à jour un projet existant.
+     */
+    // @PreAuthorize("hasPermission(#projectId, 'com.yourpackage.Project', 'write') or hasRole('ADMIN')") // Exemple sécurité
+    @PatchMapping("/{projectId}") // Mappe sur PATCH /api/users/{userId}/projects/{projectId}
+    public ResponseEntity<Void> updateProject(
+            @PathVariable Long userId, // Utilisé pour vérifier les droits
+            @PathVariable Long projectId,
+            @Valid @RequestBody ProjectUpdateDto projectUpdateDto) {
+        logger.info("PATCH /api/users/{}/projects/{} - Request received", userId, projectId);
+        // !!! Ajoutez ici la vérification de sécurité : l'utilisateur {userId} peut-il modifier {projectId}? !!!
+        try {
+            // Idéalement, la méthode de service prend aussi userId
+            projectService.updateProjectForUser(projectId, userId, projectUpdateDto); // Nom de méthode exemple
+            logger.info("Project {} updated successfully for user {}", projectId, userId);
+            return ResponseEntity.noContent().build(); // 204 No Content
+        } catch (EntityNotFoundException e) {
+            logger.warn("Project or User not found for update, project ID {} / user ID {}: {}", projectId, userId, e.getMessage());
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
+        } catch (SecurityException e) {
+            logger.warn("Access denied for update user {} on project {}: {}", userId, projectId, e.getMessage());
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, e.getMessage(), e);
+        } catch (IllegalArgumentException e) { // Pour les erreurs de validation métier non interceptées par @Valid
+            logger.warn("Invalid data for updating project {}: {}", projectId, e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
+        } catch (Exception e) {
+            logger.error("Error updating project {} for user {}: {}", projectId, userId, e.getMessage(), e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Could not update project", e);
+        }
+    }
+
+    /**
+     * Archive un projet spécifié.
+     */
+    // @PreAuthorize("hasPermission(#projectId, 'com.yourpackage.Project', 'archive') or hasRole('ADMIN')") // Exemple sécurité
+    @PostMapping("/{projectId}/archive") // Mappe sur POST /api/users/{userId}/projects/{projectId}/archive
+    public ResponseEntity<Void> archiveProject(
+            @PathVariable Long userId, // Utilisé pour vérifier les droits
+            @PathVariable Long projectId) {
+        logger.info("POST /api/users/{}/projects/{}/archive - Request received", userId, projectId);
+        // !!! Ajoutez ici la vérification de sécurité !!!
+        try {
+            // Idéalement, la méthode de service prend aussi userId
+            projectService.archiveProjectForUser(projectId, userId); // Nom de méthode exemple
+            logger.info("Project {} archived successfully for user {}", projectId, userId);
+            return ResponseEntity.ok().build(); // 200 OK (ou 204 No Content)
+        } catch (EntityNotFoundException e) {
+            logger.warn("Project or User not found for archive, project ID {} / user ID {}: {}", projectId, userId, e.getMessage());
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
+        } catch (SecurityException e) {
+            logger.warn("Access denied for archive user {} on project {}: {}", userId, projectId, e.getMessage());
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, e.getMessage(), e);
+        } catch (IllegalStateException e) { // Ex: Déjà archivé
+            logger.warn("Cannot archive project {} (user {}): {}", projectId, userId, e.getMessage());
+            throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage(), e); // 409 Conflict
+        } catch (Exception e) {
+            logger.error("Error archiving project {} for user {}: {}", projectId, userId, e.getMessage(), e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Could not archive project", e);
+        }
+    }
+
+    /**
+     * Supprime un projet spécifié de manière permanente.
+     */
+    // @PreAuthorize("hasPermission(#projectId, 'com.yourpackage.Project', 'delete') or hasRole('ADMIN')") // Exemple sécurité
+    @DeleteMapping("/{projectId}") // Mappe sur DELETE /api/users/{userId}/projects/{projectId}
+    public ResponseEntity<Void> deleteProject(
+            @PathVariable Long userId, // Utilisé pour vérifier les droits
+            @PathVariable Long projectId) {
+        logger.info("DELETE /api/users/{}/projects/{} - Request received", userId, projectId);
+        // !!! Ajoutez ici la vérification de sécurité !!!
+        try {
+            // Idéalement, la méthode de service prend aussi userId
+            projectService.deleteProjectForUser(projectId, userId); // Nom de méthode exemple
+            logger.info("Project {} deleted successfully for user {}", projectId, userId);
+            return ResponseEntity.noContent().build(); // 204 No Content est standard
+        } catch (EntityNotFoundException e) {
+            logger.warn("Project or User not found for delete, project ID {} / user ID {}: {}", projectId, userId, e.getMessage());
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
+        } catch (SecurityException e) {
+            logger.warn("Access denied for delete user {} on project {}: {}", userId, projectId, e.getMessage());
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, e.getMessage(), e);
+        } catch (Exception e) {
+            logger.error("Error deleting project {} for user {}: {}", projectId, userId, e.getMessage(), e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Could not delete project", e);
+        }
+    }
+
+    /*
+     * Note sur /projects/recent:
+     * Cette méthode ne correspond pas au @RequestMapping de la classe.
+     * Elle devrait être déplacée dans un contrôleur plus approprié,
+     * ou le @RequestMapping de cette classe devrait être changé pour juste "/api"
+     * et les chemins de chaque méthode devraient être allongés en conséquence
+     * (ex: @PostMapping("/users/{userId}/projects"), @GetMapping("/users/{userId}/projects"), etc.).
+     * Laisser ici peut fonctionner mais rend l'API moins logique.
+     */
+    // Exemple si on la laisse avec un chemin distinct mais sous /api
+    @GetMapping("/projects/recent") // Sera mappé à /api/projects/recent (car /api est le base path de ce controller même si le mapping est /api/users/{userId}/projects) -> C'est confus!
+    // Pour la clareté, il serait mieux de changer le RequestMapping de la classe à /api
+    // et de mettre le chemin complet sur chaque méthode.
+    // Ou de créer un GeneralProjectController pour les actions non liées à un user spécifique.
     public ResponseEntity<Page<ProjectSummaryDto>> getRecentProjects(
-            @RequestParam String login, // Pour l'instant, viendra de la sécurité plus tard
+            @RequestParam String login, // Récupérer via SecurityContextHolder serait mieux
             @PageableDefault(size = 5, sort = "createdDate", direction = Sort.Direction.DESC) Pageable pageable) {
-
         logger.info("GET /api/projects/recent - Request for user '{}', pageable: {}", login, pageable);
-
         try {
             Page<ProjectSummaryDto> recentProjects = projectService.findRecentProjectsForUser(login, pageable);
             return ResponseEntity.ok(recentProjects);
-        } catch (UsernameNotFoundException e) {
-            logger.warn("User not found for login: '{}'", login);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build(); // 404 si user inconnu
-        } catch (Exception e) {
+        } catch (Exception e) { // Catch plus large pour inclure UsernameNotFoundException si applicable
             logger.error("Error retrieving recent projects for user '{}': {}", login, e.getMessage(), e);
+            // Renvoyer NOT_FOUND si c'est UsernameNotFoundException, sinon INTERNAL_SERVER_ERROR
+            // if (e instanceof UsernameNotFoundException) {
+            //    return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            // }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
-
-    @PatchMapping("/users/{userId}/projects/{id}")
-    public ResponseEntity<Void> updateProject(
-            @PathVariable Long id,
-            @Valid @RequestBody ProjectUpdateDto projectUpdateDto) {
-        try {
-            projectService.updateProject(id, projectUpdateDto);
-            return ResponseEntity.noContent().build(); // 204 No Content est approprié pour PATCH/PUT réussi sans retour de corps
-            // Alternativement: return ResponseEntity.ok().build(); // 200 OK
-        } catch (EntityNotFoundException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
-        } catch (IllegalArgumentException e) {
-            // Ex: ID null, DTO null, validation de longueur échouée dans le service
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
-        }
-        // Catch d'autres exceptions métier spécifiques (ex: validation de statut)
-    }
-    @PostMapping("/{id}/archive")
-    public ResponseEntity<Void> archiveProject(@PathVariable long id) {
-        try {
-            projectService.archiveProject(id);
-            return ResponseEntity.ok().build(); // 200 OK pour une action réussie
-        } catch (EntityNotFoundException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
-        } catch (IllegalStateException e) {
-            // Ex: Projet déjà archivé
-            throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage(), e); // 409 Conflict est approprié ici
-        } catch (IllegalArgumentException e) {
-            // Ex: ID invalide
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
-        }
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteProject(@PathVariable long id) {
-        try {
-            projectService.deleteProject(id);
-            return ResponseEntity.noContent().build(); // 204 No Content
-        } catch (EntityNotFoundException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
-        } catch (IllegalArgumentException e) {
-            // Ex: ID invalide
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
-        }
-
-    }
-
-
-    @Autowired
-    public void setProjectService(ProjectService projectService) {
-        this.projectService = projectService;
-    }
+    // Le setter @Autowired est moins recommandé que l'injection par constructeur.
+    // @Autowired
+    // public void setProjectService(ProjectService projectService) {
+    //    this.projectService = projectService;
+    // }
 }

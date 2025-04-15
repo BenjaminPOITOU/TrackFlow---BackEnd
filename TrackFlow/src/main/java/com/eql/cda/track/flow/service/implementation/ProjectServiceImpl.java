@@ -1,6 +1,5 @@
 package com.eql.cda.track.flow.service.implementation;
 
-
 import com.eql.cda.track.flow.dto.projectDto.ProjectCreateDto;
 import com.eql.cda.track.flow.dto.projectDto.ProjectSummaryDto;
 import com.eql.cda.track.flow.dto.projectDto.ProjectUpdateDto;
@@ -14,20 +13,23 @@ import com.eql.cda.track.flow.repository.UserRepository;
 import com.eql.cda.track.flow.service.ProjectService;
 import com.eql.cda.track.flow.validation.Constants;
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional;
+import jakarta.transaction.Transactional; // Attention: utiliser org.springframework.transaction.annotation.Transactional
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+// import org.springframework.security.access.AccessDeniedException; // Importer si vous l'utilisez
+// import org.springframework.security.core.context.SecurityContextHolder; // Pour la sécurité
+// import org.springframework.security.core.userdetails.UserDetails; // Pour la sécurité
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import org.springframework.data.domain.Pageable;
-
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.time.Instant; // Utiliser Instant pour les dates
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -39,349 +41,400 @@ import java.util.stream.Collectors;
 public class ProjectServiceImpl implements ProjectService {
 
     private static final Logger logger = LoggerFactory.getLogger(ProjectServiceImpl.class);
-    ///  CLASSES - INVERSION DE DEPENDANCE ///
-    ProjectRepository projectRepository;
-    UserRepository userRepository;
 
+    // --- Injection par Constructeur ---
+    private final ProjectRepository projectRepository;
+    private final UserRepository userRepository;
 
-    /// METHODES - COUCHE SERVICE ///
-
-
-        @Override
-        @Transactional
-        public ProjectCreateDto createProject(Long userId, ProjectCreateDto projectCreateDto){// <-- Retourne ProjectViewDto
-
-        /// START VERIFICATIONS ///
-            if (projectCreateDto == null) {
-            throw new IllegalArgumentException("Project creation data cannot be null.");
-        }
-            if (!StringUtils.hasText(projectCreateDto.getTitle())) {
-            throw new IllegalArgumentException("Project title is mandatory and cannot be empty or blank.");
-        }
-            if (projectCreateDto.getProjectStatus() == null) {
-            throw new IllegalArgumentException("Project status is mandatory.");
-        }
-            if (projectCreateDto.getIllustration() != null && !StringUtils.hasText(projectCreateDto.getIllustration())) {
-            throw new IllegalArgumentException("Illustration URL, if provided, cannot be blank.");
-        }
-            try {
-            if (StringUtils.hasText(projectCreateDto.getIllustration())) {
-                new URL(projectCreateDto.getIllustration()).toURI();
-            }
-        } catch (MalformedURLException | URISyntaxException e) {
-            throw new IllegalArgumentException("Illustration URL format is invalid.", e);
-        }
-            if (projectCreateDto.getProjectType() == null) {
-            throw new IllegalArgumentException("Project type is mandatory.");
-        }
-        /// END VERIFICATIONS ///
-
-        // Récupération de l'utilisateur créateur
-        User creator = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("Creator user not found with ID: " + userId));
-
-        // Création de la nouvelle entité Project
-        Project newProject = new Project();
-
-        // --- Mapping des champs simples ---
-            newProject.setUser(creator);
-            newProject.setTitle(projectCreateDto.getTitle().trim());
-            newProject.setDescription(projectCreateDto.getDescription() != null ? projectCreateDto.getDescription().trim() : null);
-            newProject.setIllustration(projectCreateDto.getIllustration());
-            newProject.setProjectStatus(projectCreateDto.getProjectStatus());
-            newProject.setProjectType(projectCreateDto.getProjectType());
-            newProject.setProjectCommercialStatus(projectCreateDto.getProjectCommercialStatus());
-
-            newProject.setProjectPurposes(projectCreateDto.getProjectPurposes() != null ? new HashSet<>(projectCreateDto.getProjectPurposes()) : new HashSet<>());
-            newProject.setProjectMusicalGendersPreDefined(projectCreateDto.getProjectMusicalGendersPreDefined() != null ? new HashSet<>(projectCreateDto.getProjectMusicalGendersPreDefined()) : new HashSet<>());
-
-
-
-        Project savedProject = projectRepository.save(newProject);
-
-        // --- Retourne le DTO de vue ---
-        // Tu as besoin d'une méthode pour mapper l'entité Project vers ProjectViewDto
-            return mapEntityToCreateDto(savedProject); // <-- Appelle ta méthode de mapping
+    @Autowired
+    public ProjectServiceImpl(ProjectRepository projectRepository, UserRepository userRepository) {
+        this.projectRepository = projectRepository;
+        this.userRepository = userRepository;
     }
-        @Override
-        @Transactional
-        public ProjectViewDto getCurrentProjectInfo (Long id){
-            if (id == null) {
-                throw new IllegalArgumentException("Project ID cannot be null.");
-            }
 
-            Project project = projectRepository.findById(id)
-                    .orElseThrow(() -> new EntityNotFoundException("Project not found with ID: " + id));
-            return mapEntityToProjectViewDto(project);
+    // --- Méthodes Service (Adaptées) ---
+
+    @Override
+    @Transactional // Utiliser l'annotation Spring
+    public ProjectCreateDto createProject(Long userId, ProjectCreateDto projectCreateDto) {
+        logger.debug("Creating project for user ID: {}", userId);
+        // Validation DTO
+        validateProjectCreateDto(projectCreateDto);
+
+        // Récupération User et validation existence
+        User creator = userRepository.findById(userId)
+                .orElseThrow(() -> {
+                    logger.warn("User not found with ID {} during project creation.", userId);
+                    return new EntityNotFoundException("Creator user not found with ID: " + userId);
+                });
+
+        // Vérification Sécurité (Exemple Simpliste - Adaptez avec votre logique de sécurité)
+        // checkUserPermission(userId, "CREATE_PROJECT_FOR_USER"); // Implémenter cette méthode
+
+        // Mapping vers Entité
+        Project newProject = mapCreateDtoToEntity(projectCreateDto, creator);
+        newProject.setCreatedDate(Instant.now()); // Initialiser la date de création
+
+        // Sauvegarde
+        Project savedProject = projectRepository.save(newProject);
+        logger.info("Project created with ID: {} for user ID: {}", savedProject.getId(), userId);
+
+        // Retourner le DTO (on pourrait aussi retourner ProjectViewDto si plus utile)
+        return mapEntityToCreateDto(savedProject);
+    }
+
+    @Override
+    @Transactional
+    public ProjectViewDto getProjectByIdAndUser(Long projectId, Long userId) {
+        logger.debug("Fetching project ID: {} for user ID: {}", projectId, userId);
+        if (projectId == null || userId == null) {
+            throw new IllegalArgumentException("Project ID and User ID cannot be null.");
         }
 
-        @Override
-        @Transactional
-        public Page<ProjectSummaryDto> findRecentProjectsForUser(String username, Pageable pageable) {
-            User user = userRepository.findByLogin(username)
-                    .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
-            Page<Project> recentProjectsPage = projectRepository.findByUser(user, pageable);
-            return recentProjectsPage.map(this::mapEntityToProjectSummaryDto);
+        // Récupérer le projet
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> {
+                    logger.warn("Project not found with ID: {}", projectId);
+                    return new EntityNotFoundException("Project not found with ID: " + projectId);
+                });
+
+        // ---> VÉRIFICATION DE PERMISSION <---
+        // Vérifie si le projet appartient à l'utilisateur demandé
+        if (!project.getUser().getId().equals(userId)) {
+            // Ici, on pourrait aussi vérifier si l'utilisateur actuel (via SecurityContextHolder)
+            // a le droit de voir les projets d'un autre utilisateur (ex: rôle ADMIN).
+            logger.warn("Access denied: User ID {} attempted to access project ID {} owned by user ID {}",
+                    userId, projectId, project.getUser().getId());
+            throw new SecurityException("User does not have permission to access this project.");
+            // Ou lancer : throw new AccessDeniedException("User does not have permission to access this project.");
         }
+
+        logger.debug("Project ID {} found and user {} has access.", projectId, userId);
+        return mapEntityToProjectViewDto(project);
+    }
 
     @Override
     @Transactional
     public Page<ProjectViewDto> getAllProjectsPaginated(Long userId, Pageable pageable) {
-        logger.debug("Fetching paginated projects for user ID: {} with pageable: {}", userId, pageable);
+        logger.debug("Fetching *active* paginated projects for user ID: {} with pageable: {}", userId, pageable); // Message mis à jour
+        if (userId == null) { throw new IllegalArgumentException("User ID cannot be null"); }
 
-        if (userId == null) {
-            throw new IllegalArgumentException("User ID cannot be null");
-        }
-
-        // Optionnel mais recommandé : Vérifier si l'utilisateur existe
-        // Si userRepository.existsById renvoie false, lève EntityNotFoundException
         if (!userRepository.existsById(userId)) {
             logger.warn("User not found with ID: {}", userId);
             throw new EntityNotFoundException("User not found with id: " + userId);
         }
 
-        Page<Project> userProjectsPage = projectRepository.findByUserId(userId, pageable); //
 
+        Page<Project> userProjectsPage = projectRepository.findByUserIdAndArchivedFalse(userId, pageable);
+        logger.debug("Found {} *active* projects for user ID {} on page {}", userProjectsPage.getNumberOfElements(), userId, pageable.getPageNumber());
 
-        // Mappe la Page<Project> en Page<ProjectViewDto>
-        // La méthode 'map' de l'objet Page fait ça facilement
-        Page<ProjectViewDto> projectDtosPage = userProjectsPage.map(this::mapEntityToProjectViewDto);
-
-        logger.debug("Returning page {} of {} projects (total {}) for user ID: {}",
-                projectDtosPage.getNumber(), projectDtosPage.getNumberOfElements(), projectDtosPage.getTotalElements(), userId);
-
-        return projectDtosPage;
+        return userProjectsPage.map(this::mapEntityToProjectViewDto);
     }
-        @Override
-        @Transactional
-        public void updateProject (Long projectId, ProjectUpdateDto projectUpdateDto){
 
-            // 1. Validation des entrées de base
-            if (projectId == null) {
-                throw new IllegalArgumentException("Project ID cannot be null for update.");
-            }
-            if (projectUpdateDto == null) {
-                throw new IllegalArgumentException("Project update data cannot be null.");
-            }
+    @Override
+    @Transactional
+    public Page<ProjectSummaryDto> findRecentProjectsForUser(String username, Pageable pageable) {
+        logger.debug("Finding recent projects for username: {} with pageable: {}", username, pageable);
+        if (!StringUtils.hasText(username)) { throw new IllegalArgumentException("Username cannot be blank"); }
 
-            // 2. Récupérer l'entité existante
-            Project projectToUpdate = projectRepository.findById(projectId)
-                    .orElseThrow(() -> new EntityNotFoundException("Project not found with ID: " + projectId + " for update."));
+        User user = userRepository.findByLogin(username)
+                .orElseThrow(() -> {
+                    logger.warn("User not found with username: {}", username);
+                    return new UsernameNotFoundException("User not found with username: " + username);
+                });
 
-            // TODO: Ajouter une vérification des permissions ici si nécessaire
-            // (Ex: L'utilisateur actuel a-t-il le droit de modifier CE projet ?)
-            // checkPermissionToUpdate(currentUser, projectToUpdate);
+        // Sécurité: Vérifier si l'utilisateur connecté a le droit de voir les projets de 'username'
+        // checkUserPermission(user.getId(), "VIEW_RECENT_PROJECTS");
 
-            // 3. Appliquer les modifications (seulement si la valeur est fournie dans le DTO)
-            boolean changed = false; // Flag pour savoir si une modification a eu lieu
+        Page<Project> recentProjectsPage = projectRepository.findByUserOrderByCreatedDateDesc(user, pageable);
+        logger.debug("Found {} recent projects for username {}", recentProjectsPage.getNumberOfElements(), username);
 
-            // Titre
-            if (projectUpdateDto.getTitle() != null && StringUtils.hasText(projectUpdateDto.getTitle())) {
-                String newTitle = projectUpdateDto.getTitle().trim();
-                // Re-valider la longueur
-                if (newTitle.length() > Constants.PROJECT_TITLE_MAX_LENGTH) {
-                    throw new IllegalArgumentException(Constants.PROJECT_TITLE_MAX_LENGTH_MSG);
-                }
-                // Vérifier si la valeur a réellement changé avant de setter
-                if (!newTitle.equals(projectToUpdate.getTitle())) {
-                    projectToUpdate.setTitle(newTitle);
-                    changed = true;
-                }
-            }
+        return recentProjectsPage.map(this::mapEntityToProjectSummaryDto);
+    }
 
-            // Description (Attention: permet potentiellement de mettre à jour vers null ou vide si DTO le contient explicitement)
-            if (projectUpdateDto.getDescription() != null) {
-                String newDescription = projectUpdateDto.getDescription().trim();
-                // Re-valider la longueur
-                if (newDescription.length() > Constants.PROJECT_DESC_MAX_LENGTH) {
-                    throw new IllegalArgumentException(Constants.PROJECT_DESC_MAX_LENGTH_MSG);
-                }
-                // Vérifier si la valeur a réellement changé (y compris passage de valeur à null/vide ou inverse)
-                if (!Objects.equals(newDescription, projectToUpdate.getDescription())) {
-                    projectToUpdate.setDescription(newDescription);
-                    changed = true;
-                }
-            }
+    @Override
+    @Transactional
+    public void updateProjectForUser(Long projectId, Long userId, ProjectUpdateDto projectUpdateDto) {
+        logger.debug("Updating project ID: {} for user ID: {}", projectId, userId);
+        // Validation
+        if (projectId == null || userId == null) { throw new IllegalArgumentException("Project ID and User ID cannot be null."); }
+        if (projectUpdateDto == null) { throw new IllegalArgumentException("Project update data cannot be null."); }
+        validateProjectUpdateDto(projectUpdateDto); // Validation plus poussée si nécessaire
 
-            // Illustration URL
-            if (projectUpdateDto.getIllustration() != null) {
-                // Ajouter validation de format URL si nécessaire
-                if (!Objects.equals(projectUpdateDto.getIllustration(), projectToUpdate.getIllustration())) {
-                    projectToUpdate.setIllustration(projectUpdateDto.getIllustration());
-                    changed = true;
-                }
-            }
+        // Récupérer Projet
+        Project projectToUpdate = projectRepository.findById(projectId)
+                .orElseThrow(() -> {
+                    logger.warn("Project not found with ID: {} for update.", projectId);
+                    return new EntityNotFoundException("Project not found with ID: " + projectId);
+                });
 
-            // Project Status
-            if (projectUpdateDto.getProjectStatus() != null) {
-                // Ajouter validation métier si nécessaire (ex: peut-on passer de PUBLISHED à DRAFT ?)
-                if (projectUpdateDto.getProjectStatus() != projectToUpdate.getProjectStatus()) {
-                    projectToUpdate.setProjectStatus(projectUpdateDto.getProjectStatus());
-                    changed = true;
-                }
-            }
-
-            // Project Type
-            if (projectUpdateDto.getProjectType() != null) {
-                if (projectUpdateDto.getProjectType() != projectToUpdate.getProjectType()) {
-                    projectToUpdate.setProjectType(projectUpdateDto.getProjectType());
-                    changed = true;
-                }
-            }
-
-            // Project Commercial Status
-            if (projectUpdateDto.getProjectCommercialStatus() != null) {
-                if (projectUpdateDto.getProjectCommercialStatus() != projectToUpdate.getProjectCommercialStatus()) {
-                    projectToUpdate.setProjectCommercialStatus(projectUpdateDto.getProjectCommercialStatus());
-                    changed = true;
-                }
-            }
-
-            // Collections (Exemple pour ProjectPurposes - Remplace entièrement le set existant)
-            // Adaptez si vous avez besoin d'une logique d'ajout/suppression partielle
-            if (projectUpdateDto.getProjectPurposes() != null) {
-                // Convertir le nouveau set pour comparaison et affectation
-                Set<ProjectPurpose> newPurposes = new HashSet<>(projectUpdateDto.getProjectPurposes());
-                // Vérifier si le set a changé avant de remplacer
-                if (!Objects.equals(newPurposes, projectToUpdate.getProjectPurposes())) {
-                    projectToUpdate.setProjectPurposes(newPurposes);
-                    changed = true;
-                }
-            }
-
-            // Répétez pour les autres collections (MusicalGendersPreDefined, MusicalGenderAddedSet, ProjectTags) si elles sont dans ProjectUpdateDto
-            if (projectUpdateDto.getProjectMusicalGendersPreDefined() != null) {
-                Set<ProjectMusicalGenderPreDefined> newGenders = new HashSet<>(projectUpdateDto.getProjectMusicalGendersPreDefined());
-                if (!Objects.equals(newGenders, projectToUpdate.getProjectMusicalGendersPreDefined())) {
-                    projectToUpdate.setProjectMusicalGendersPreDefined(newGenders);
-                    changed = true;
-                }
-            }
-
-
-            if (changed) {
-                projectRepository.save(projectToUpdate);
-            }
-            // Si rien n'a changé, on ne fait rien (pas d'écriture inutile en BDD).
+        // ---> VÉRIFICATION DE PERMISSION <---
+        if (!projectToUpdate.getUser().getId().equals(userId)) {
+            logger.warn("Access denied: User ID {} attempted to update project ID {} owned by user ID {}",
+                    userId, projectId, projectToUpdate.getUser().getId());
+            throw new SecurityException("User does not have permission to update this project.");
+            // Ou lancer : throw new AccessDeniedException("User does not have permission...");
         }
 
-        @Override
-        @Transactional
-        public void archiveProject ( long projectId){
-            // 1. Validation de base de l'ID
-            if (projectId <= 0) {
-                throw new IllegalArgumentException("Project ID must be positive for archiving.");
-            }
+        // Appliquer les modifications
+        boolean changed = applyUpdatesFromDto(projectToUpdate, projectUpdateDto);
 
-            // 2. Récupérer l'entité existante
-            Project projectToArchive = projectRepository.findById(projectId)
-                    .orElseThrow(() -> new EntityNotFoundException("Project not found with ID: " + projectId + " for archiving."));
-
-            // TODO: Ajouter une vérification des permissions ici si nécessaire
-            // (Ex: L'utilisateur actuel a-t-il le droit d'archiver CE projet ?)
-            // checkPermissionToArchive(currentUser, projectToArchive);
-
-            // 3. Vérifier si le projet est déjà archivé
-            //    (Assurez-vous que votre entité Project a une méthode isArchived() ou getArchived())
-            if (projectToArchive.getArchived()) {
-                throw new IllegalStateException("Project with ID: " + projectId + " is already archived.");
-            }
-
-            projectToArchive.setArchived(true);
-            projectRepository.save(projectToArchive);
-
-
-        }
-
-        @Override
-        @Transactional
-        public void deleteProject ( long projectId){
-
-            if (!projectRepository.existsById(projectId)) {
-                throw new EntityNotFoundException("Project not found with ID: " + projectId + " for deletion.");
-            }
-            projectRepository.deleteById(projectId);
-
-        }
-
-
-        private ProjectSummaryDto mapEntityToProjectSummaryDto (Project project){
-
-            if (project == null) {
-                return null;
-            }
-
-            ProjectSummaryDto dto = new ProjectSummaryDto();
-
-            dto.setId(project.getId());
-            dto.setTitle(project.getTitle());
-            dto.setProjectStatus(project.getProjectStatus());
-            dto.setCreatedDate(project.getCreatedDate()); // Assurez-vous que le champ s'appelle bien ainsi
-
-            // Construire la liste simplifiée des genres musicaux
-            List<String> genreNames = new ArrayList<>();
-            Set<ProjectMusicalGenderPreDefined> predefinedGenres = project.getProjectMusicalGendersPreDefined();
-            if (predefinedGenres != null) {
-                predefinedGenres.forEach(genreEnum -> genreNames.add(genreEnum.name())); // Ou une autre représentation textuelle si l'enum a une méthode dédiée
-            }
-
-            dto.setProjectMusicalGendersPreDefined(genreNames);
-
-            return dto;
-        }
-        private ProjectCreateDto mapEntityToCreateDto (Project project){
-            ProjectCreateDto dto = new ProjectCreateDto();
-            dto.setId(project.getId());
-            dto.setTitle(project.getTitle());
-            dto.setDescription(project.getDescription());
-            dto.setIllustration(project.getIllustration());
-            dto.setProjectStatus(project.getProjectStatus());
-            dto.setProjectType(project.getProjectType());
-            dto.setProjectCommercialStatus(project.getProjectCommercialStatus());
-            dto.setProjectPurposes(project.getProjectPurposes());
-            dto.setProjectMusicalGendersPreDefined(project.getProjectMusicalGendersPreDefined());
-            dto.setCreationDate(project.getCreatedDate());
-
-            return dto;
-        }
-        private ProjectViewDto mapEntityToProjectViewDto (Project project){
-            System.out.println("Attempting to map Project ID: " + (project != null ? project.getId() : "NULL PROJECT")); // Log d'entrée
-            if (project == null) {
-                System.err.println("mapEntityToProjectViewDto received a null project object!");
-                return null; // Ou lancer une exception si ce n'est pas attendu
-            }
-
-            ProjectViewDto dto = new ProjectViewDto();
-            dto.setId(project.getId());
-            dto.setTitle(project.getTitle());
-
-
-             dto.setDescription(project.getDescription());
-             dto.setIllustration(project.getIllustration());
-             dto.setProjectStatus(project.getProjectStatus());
-             dto.setProjectType(project.getProjectType());
-             dto.setProjectCommercialStatus(project.getProjectCommercialStatus());
-             dto.setCompositionsTotal(project.getCompositions() != null ? project.getCompositions().size() : 0); // ATTENTION ICI !
-             dto.setProjectPurposes(project.getProjectPurposes() != null ? new HashSet<>(project.getProjectPurposes()) : new HashSet<>()); // ATTENTION ICI !
-             dto.setProjectMusicalGendersPreDefined(project.getProjectMusicalGendersPreDefined() != null ? new HashSet<>(project.getProjectMusicalGendersPreDefined()) : new HashSet<>()); // ATTENTION ICI !
-             dto.setCreatedDate(project.getCreatedDate());
-             dto.setUpdateDate(project.getLastUpdateDate());
-
-            System.out.println("Finished basic mapping for Project ID: " + project.getId()); // Log de sortie
-            return dto;
-        }
-
-
-        ///  SETTERS - INVERSION DE DEPENDANCE ///
-
-        @Autowired
-        public void setProjectRepository (ProjectRepository projectRepository){
-            this.projectRepository = projectRepository;
-        }
-
-        @Autowired
-        public void setUserRepository (UserRepository userRepository){
-            this.userRepository = userRepository;
+        // Sauvegarder si modifié
+        if (changed) {
+            projectToUpdate.setLastUpdateDate(Instant.now()); // Mettre à jour la date de modif
+            projectRepository.save(projectToUpdate);
+            logger.info("Project ID {} updated successfully by user ID {}", projectId, userId);
+        } else {
+            logger.info("No changes detected for project ID {}", projectId);
         }
     }
 
+    @Override
+    @Transactional
+    public void archiveProjectForUser(Long projectId, Long userId) {
+        logger.debug("Archiving project ID: {} for user ID: {}", projectId, userId);
+        if (projectId == null || userId == null) { throw new IllegalArgumentException("Project ID and User ID cannot be null."); }
+
+        // Récupérer Projet
+        Project projectToArchive = projectRepository.findById(projectId)
+                .orElseThrow(() -> {
+                    logger.warn("Project not found with ID: {} for archive.", projectId);
+                    return new EntityNotFoundException("Project not found with ID: " + projectId);
+                });
+
+        // ---> VÉRIFICATION DE PERMISSION <---
+        if (!projectToArchive.getUser().getId().equals(userId)) {
+            logger.warn("Access denied: User ID {} attempted to archive project ID {} owned by user ID {}",
+                    userId, projectId, projectToArchive.getUser().getId());
+            throw new SecurityException("User does not have permission to archive this project.");
+            // Ou lancer : throw new AccessDeniedException("User does not have permission...");
+        }
+
+        // Vérifier état
+        if (projectToArchive.getArchived()) { // Supposant une méthode getArchived()
+            logger.warn("Project ID {} is already archived.", projectId);
+            throw new IllegalStateException("Project with ID: " + projectId + " is already archived.");
+        }
+
+        // Archiver et sauvegarder
+        projectToArchive.setArchived(true); // Supposant une méthode setArchived()
+        projectToArchive.setLastUpdateDate(Instant.now());
+        projectRepository.save(projectToArchive);
+        logger.info("Project ID {} archived successfully by user ID {}", projectId, userId);
+    }
+
+    @Override
+    @Transactional
+    public void deleteProjectForUser(Long projectId, Long userId) {
+        logger.debug("Deleting project ID: {} for user ID: {}", projectId, userId);
+        if (projectId == null || userId == null) { throw new IllegalArgumentException("Project ID and User ID cannot be null."); }
+
+        // Récupérer Projet (pour vérifier la propriété avant de supprimer)
+        Project projectToDelete = projectRepository.findById(projectId)
+                .orElseThrow(() -> {
+                    logger.warn("Project not found with ID: {} for deletion.", projectId);
+                    return new EntityNotFoundException("Project not found with ID: " + projectId);
+                });
+
+        // ---> VÉRIFICATION DE PERMISSION <---
+        if (!projectToDelete.getUser().getId().equals(userId)) {
+            logger.warn("Access denied: User ID {} attempted to delete project ID {} owned by user ID {}",
+                    userId, projectId, projectToDelete.getUser().getId());
+            throw new SecurityException("User does not have permission to delete this project.");
+            // Ou lancer : throw new AccessDeniedException("User does not have permission...");
+        }
+
+        // Suppression
+        projectRepository.deleteById(projectId);
+        logger.info("Project ID {} deleted successfully by user ID {}", projectId, userId);
+    }
+
+
+    // --- Méthodes privées de Mapping et Validation ---
+
+    private Project mapCreateDtoToEntity(ProjectCreateDto dto, User creator) {
+        Project entity = new Project();
+        entity.setUser(creator);
+        entity.setTitle(dto.getTitle().trim());
+        entity.setDescription(dto.getDescription() != null ? dto.getDescription().trim() : null);
+        entity.setIllustration(dto.getIllustration());
+        entity.setProjectStatus(dto.getProjectStatus());
+        entity.setProjectType(dto.getProjectType());
+        entity.setProjectCommercialStatus(dto.getProjectCommercialStatus());
+        entity.setProjectPurposes(dto.getProjectPurposes() != null ? new HashSet<>(dto.getProjectPurposes()) : new HashSet<>());
+        entity.setProjectMusicalGendersPreDefined(dto.getProjectMusicalGendersPreDefined() != null ? new HashSet<>(dto.getProjectMusicalGendersPreDefined()) : new HashSet<>());
+        // Initialiser les dates et l'archivage
+        entity.setCreatedDate(Instant.now());
+        entity.setLastUpdateDate(Instant.now());
+        entity.setArchived(false); // Par défaut, non archivé
+        return entity;
+    }
+
+    private ProjectCreateDto mapEntityToCreateDto(Project entity) {
+        // Inverse de mapCreateDtoToEntity (pour le retour après création)
+        ProjectCreateDto dto = new ProjectCreateDto();
+        dto.setId(entity.getId());
+        dto.setTitle(entity.getTitle());
+        dto.setDescription(entity.getDescription());
+        dto.setIllustration(entity.getIllustration());
+        dto.setProjectStatus(entity.getProjectStatus());
+        dto.setProjectType(entity.getProjectType());
+        dto.setProjectCommercialStatus(entity.getProjectCommercialStatus());
+        dto.setProjectPurposes(entity.getProjectPurposes());
+        dto.setProjectMusicalGendersPreDefined(entity.getProjectMusicalGendersPreDefined());
+        dto.setCreationDate(entity.getCreatedDate()); // Mappe la date de création
+        return dto;
+    }
+
+    private ProjectViewDto mapEntityToProjectViewDto(Project entity) {
+        // Logique de mapping existante (assurez-vous qu'elle est correcte)
+        logger.trace("Mapping Project entity ID: {} to ProjectViewDto", entity.getId());
+        ProjectViewDto dto = new ProjectViewDto();
+        dto.setId(entity.getId());
+        dto.setTitle(entity.getTitle());
+        dto.setDescription(entity.getDescription());
+        dto.setIllustration(entity.getIllustration());
+        dto.setProjectStatus(entity.getProjectStatus());
+        dto.setProjectType(entity.getProjectType());
+        dto.setProjectCommercialStatus(entity.getProjectCommercialStatus());
+        // Vérifier la logique de calcul de compositionsTotal
+        dto.setCompositionsTotal(entity.getCompositions() != null ? entity.getCompositions().size() : 0);
+        // Copier les Sets pour éviter les modifications par référence
+        dto.setProjectPurposes(entity.getProjectPurposes() != null ? new HashSet<>(entity.getProjectPurposes()) : new HashSet<>());
+        dto.setProjectMusicalGendersPreDefined(entity.getProjectMusicalGendersPreDefined() != null ? new HashSet<>(entity.getProjectMusicalGendersPreDefined()) : new HashSet<>());
+        dto.setCreatedDate(entity.getCreatedDate());
+        dto.setUpdateDate(entity.getLastUpdateDate());
+        logger.trace("Finished mapping Project entity ID: {}", entity.getId());
+        return dto;
+    }
+
+    private ProjectSummaryDto mapEntityToProjectSummaryDto(Project entity) {
+        // Logique de mapping existante
+        logger.trace("Mapping Project entity ID: {} to ProjectSummaryDto", entity.getId());
+        ProjectSummaryDto dto = new ProjectSummaryDto();
+        dto.setId(entity.getId());
+        dto.setTitle(entity.getTitle());
+        dto.setProjectStatus(entity.getProjectStatus());
+        dto.setCreatedDate(entity.getCreatedDate());
+        List<String> genreNames = new ArrayList<>();
+        if (entity.getProjectMusicalGendersPreDefined() != null) {
+            entity.getProjectMusicalGendersPreDefined().forEach(genreEnum -> genreNames.add(genreEnum.name()));
+        }
+        dto.setProjectMusicalGendersPreDefined(genreNames);
+        logger.trace("Finished mapping Project entity ID: {}", entity.getId());
+        return dto;
+    }
+
+    // Applique les mises à jour du DTO à l'entité, retourne true si quelque chose a changé
+    private boolean applyUpdatesFromDto(Project entity, ProjectUpdateDto dto) {
+        boolean changed = false;
+        // Titre
+        if (dto.getTitle() != null && StringUtils.hasText(dto.getTitle())) {
+            String newTitle = dto.getTitle().trim(); /* + validation longueur */
+            if (!newTitle.equals(entity.getTitle())) { entity.setTitle(newTitle); changed = true; }
+        }
+        // Description
+        if (dto.getDescription() != null) {
+            String newDescription = dto.getDescription().trim(); /* + validation longueur */
+            if (!Objects.equals(newDescription, entity.getDescription())) { entity.setDescription(newDescription); changed = true; }
+        }
+        // Illustration
+        if (dto.getIllustration() != null) {
+            /* + validation URL */
+            if (!Objects.equals(dto.getIllustration(), entity.getIllustration())) { entity.setIllustration(dto.getIllustration()); changed = true; }
+        }
+        // Project Status
+        if (dto.getProjectStatus() != null && dto.getProjectStatus() != entity.getProjectStatus()) {
+            entity.setProjectStatus(dto.getProjectStatus()); changed = true;
+        }
+        // Project Type
+        if (dto.getProjectType() != null && dto.getProjectType() != entity.getProjectType()) {
+            entity.setProjectType(dto.getProjectType()); changed = true;
+        }
+        // Commercial Status
+        if (dto.getProjectCommercialStatus() != null && dto.getProjectCommercialStatus() != entity.getProjectCommercialStatus()) {
+            entity.setProjectCommercialStatus(dto.getProjectCommercialStatus()); changed = true;
+        }
+        // Purposes (remplacement complet)
+        if (dto.getProjectPurposes() != null) {
+            Set<ProjectPurpose> newPurposes = new HashSet<>(dto.getProjectPurposes());
+            if (!Objects.equals(newPurposes, entity.getProjectPurposes())) { entity.setProjectPurposes(newPurposes); changed = true; }
+        }
+        // Musical Genders (remplacement complet)
+        if (dto.getProjectMusicalGendersPreDefined() != null) {
+            Set<ProjectMusicalGenderPreDefined> newGenders = new HashSet<>(dto.getProjectMusicalGendersPreDefined());
+            if (!Objects.equals(newGenders, entity.getProjectMusicalGendersPreDefined())) { entity.setProjectMusicalGendersPreDefined(newGenders); changed = true; }
+        }
+        return changed;
+    }
+
+    // Méthodes de validation séparées (exemples)
+    private void validateProjectCreateDto(ProjectCreateDto dto) {
+        if (dto == null) throw new IllegalArgumentException("Project creation data cannot be null.");
+        if (!StringUtils.hasText(dto.getTitle())) throw new IllegalArgumentException("Project title is mandatory.");
+        // ... autres validations de base du DTO create ...
+        try { if (StringUtils.hasText(dto.getIllustration())) { new URL(dto.getIllustration()).toURI(); } }
+        catch (MalformedURLException | URISyntaxException e) { throw new IllegalArgumentException("Illustration URL format is invalid.", e); }
+    }
+
+    private void validateProjectUpdateDto(ProjectUpdateDto dto) {
+        if (dto == null) throw new IllegalArgumentException("Project update data cannot be null.");
+        // Validation spécifique au DTO update si nécessaire (ex: certains champs ne peuvent pas être mis à null)
+        try { if (dto.getIllustration() != null && StringUtils.hasText(dto.getIllustration())) { new URL(dto.getIllustration()).toURI(); } }
+        catch (MalformedURLException | URISyntaxException e) { throw new IllegalArgumentException("Illustration URL format is invalid.", e); }
+    }
+
+    // ---> Méthode pour la Vérification de Sécurité (À Implémenter) <---
+    // private void checkUserPermission(Long targetUserId, String action) {
+    //     // Récupérer l'utilisateur authentifié
+    //     Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    //     Long authenticatedUserId = null;
+    //     Set<String> roles = new HashSet<>();
+    //
+    //     if (principal instanceof UserDetails) {
+    //         // Adapter ceci à votre UserDetails implementation pour obtenir l'ID
+    //         // authenticatedUserId = ((YourUserDetails) principal).getId();
+    //         // roles = ((YourUserDetails) principal).getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.toSet());
+    //     } else if (principal instanceof String) {
+    //         // Gérer si principal est juste un username
+    //     } else {
+    //         throw new AccessDeniedException("Could not determine authenticated user.");
+    //     }
+    //
+    //     // Vérifier les droits
+    //     boolean hasPermission = false;
+    //     if (authenticatedUserId != null) {
+    //          // L'utilisateur peut agir sur ses propres ressources OU est admin
+    //         if (authenticatedUserId.equals(targetUserId) || roles.contains("ROLE_ADMIN")) {
+    //             hasPermission = true;
+    //         }
+    //         // Ajouter d'autres logiques de permission si nécessaire
+    //     }
+    //
+    //     if (!hasPermission) {
+    //         logger.warn("Permission denied for user {} to perform action '{}' on resource related to user {}", authenticatedUserId, action, targetUserId);
+    //         throw new AccessDeniedException("Insufficient permissions to perform this action.");
+    //     }
+    //     logger.debug("Permission granted for user {} to perform action '{}' on resource related to user {}", authenticatedUserId, action, targetUserId);
+    // }
+
+    // Méthode Originale getCurrentProjectInfo (gardée pour l'instant, marquée comme potentiellement obsolète)
+    // @Override
+    // @SpringTransactional(readOnly = true)
+    // @Deprecated // Marquer comme dépréciée car getProjectByIdAndUser est préférée
+    // public ProjectViewDto getCurrentProjectInfo(Long id) {
+    //     logger.warn("Calling deprecated method getCurrentProjectInfo without userId check for project ID: {}", id);
+    //     if (id == null) { throw new IllegalArgumentException("Project ID cannot be null."); }
+    //     Project project = projectRepository.findById(id)
+    //             .orElseThrow(() -> new EntityNotFoundException("Project not found with ID: " + id));
+    //     // ATTENTION: Aucune vérification de permission ici !
+    //     return mapEntityToProjectViewDto(project);
+    // }
+
+
+    // --- Setters pour Injection (Obsolète avec l'injection par constructeur) ---
+    // @Autowired
+    // public void setProjectRepository (ProjectRepository projectRepository){ this.projectRepository = projectRepository; }
+    // @Autowired
+    // public void setUserRepository (UserRepository userRepository){ this.userRepository = userRepository; }
+}

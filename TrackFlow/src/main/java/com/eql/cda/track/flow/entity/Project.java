@@ -48,7 +48,7 @@ public class Project {
     private String description;
 
     private String illustration;
-    private boolean isArchived;
+    private boolean archived;
     private Integer projectOrder;
 
     @CreatedDate
@@ -104,12 +104,12 @@ public class Project {
     public Project() {
     }
 
-    public Project(Long id, String title, String description, String illustration, boolean isArchived, Integer projectOrder, Instant createdDate, Instant lastUpdateDate, Instant supressionDate, Instant definitivSupressionDate, User user, Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined, Set<Composition> compositions, ProjectStatus projectStatus, ProjectType projectType, ProjectCommercialStatus projectCommercialStatus, Set<ProjectPurpose> projectPurposes) {
+    public Project(Long id, String title, String description, String illustration, boolean archived, Integer projectOrder, Instant createdDate, Instant lastUpdateDate, Instant supressionDate, Instant definitivSupressionDate, User user, Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined, Set<Composition> compositions, ProjectStatus projectStatus, ProjectType projectType, ProjectCommercialStatus projectCommercialStatus, Set<ProjectPurpose> projectPurposes) {
         this.id = id;
         this.title = title;
         this.description = description;
         this.illustration = illustration;
-        this.isArchived = isArchived;
+        this.archived = archived;
         this.projectOrder = projectOrder;
         this.createdDate = createdDate;
         this.lastUpdateDate = lastUpdateDate;
@@ -153,10 +153,10 @@ public class Project {
     }
 
     public Boolean getArchived() {
-        return isArchived;
+        return archived;
     }
     public void setArchived(Boolean archived) {
-        isArchived = archived;
+        this.archived = archived;
     }
 
 
@@ -198,10 +198,10 @@ public class Project {
     }
 
     public boolean isArchived() {
-        return isArchived;
+        return archived;
     }
     public void setArchived(boolean archived) {
-        isArchived = archived;
+        this.archived = archived;
     }
 
     public Instant getCreatedDate() {
