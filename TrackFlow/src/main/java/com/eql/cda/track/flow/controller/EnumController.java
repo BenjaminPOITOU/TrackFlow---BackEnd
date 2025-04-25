@@ -1,6 +1,7 @@
 package com.eql.cda.track.flow.controller;
 
 import com.eql.cda.track.flow.dto.EnumDto;
+import com.eql.cda.track.flow.entity.CompositionStatus;
 import com.eql.cda.track.flow.entity.ProjectCommercialStatus;
 import com.eql.cda.track.flow.entity.ProjectMusicalGenderPreDefined;
 import com.eql.cda.track.flow.entity.ProjectPurpose;
@@ -61,4 +62,10 @@ public class EnumController {
     public List<EnumDto> getProjectCommercialStatuses() {
         return enumToDtoList(ProjectCommercialStatus.class);
     }
+
+    @GetMapping("/composition-statuses")
+    public List<EnumDto> getCompositionStatuses() {
+        return enumToDtoList(CompositionStatus.class);
+    }
+
 }

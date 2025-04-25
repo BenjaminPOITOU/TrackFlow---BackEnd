@@ -3,6 +3,7 @@ package com.eql.cda.track.flow.dto.compositionDto;
 import com.eql.cda.track.flow.entity.CompositionStatus;
 import com.eql.cda.track.flow.validation.Constants;
 import jakarta.persistence.Column;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.util.List;
@@ -13,7 +14,7 @@ public class CompositionUpdateDto {
     @Column(length = Constants.COMPOSITION_TITLE_MAX_LENGTH)
     private String title;
 
-    @Size(max = Constants.COMPOSITION_DESC_MAX_LENGTH, message = Constants.COMPOSITION_DESC_MAX_LENGTH_MSG)
+
     @Column(length = Constants.COMPOSITION_DESC_MAX_LENGTH)
     private CompositionStatus compositionStatus;
 
