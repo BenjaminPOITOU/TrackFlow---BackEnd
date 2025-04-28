@@ -29,7 +29,8 @@ import java.util.List;
 // TODO: Ajouter la sécurité (@PreAuthorize) pour vérifier que l'utilisateur a le droit d'agir sur ces annotations (via la Version/Composition/Projet)
 
 @RestController
-@RequestMapping("/api") // Base commune
+@RequestMapping("/api")
+@CrossOrigin(origins = "http://localhost:3000")
 public class AnnotationController {
 
     private static final Logger logger = LoggerFactory.getLogger(AnnotationController.class);
