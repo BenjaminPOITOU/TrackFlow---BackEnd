@@ -30,6 +30,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api") // Base commune
+@CrossOrigin(origins = "http://localhost:3000")
 public class AnnotationController {
 
     private static final Logger logger = LoggerFactory.getLogger(AnnotationController.class);

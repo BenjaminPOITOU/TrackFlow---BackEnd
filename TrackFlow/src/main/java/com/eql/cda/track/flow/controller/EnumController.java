@@ -1,6 +1,8 @@
 package com.eql.cda.track.flow.controller;
 
 import com.eql.cda.track.flow.dto.EnumDto;
+import com.eql.cda.track.flow.entity.AnnotationCategory;
+import com.eql.cda.track.flow.entity.AnnotationStatus;
 import com.eql.cda.track.flow.entity.CompositionStatus;
 import com.eql.cda.track.flow.entity.ProjectCommercialStatus;
 import com.eql.cda.track.flow.entity.ProjectMusicalGenderPreDefined;
@@ -66,6 +68,16 @@ public class EnumController {
     @GetMapping("/composition-statuses")
     public List<EnumDto> getCompositionStatuses() {
         return enumToDtoList(CompositionStatus.class);
+    }
+
+
+    @GetMapping("/annotation-categories")
+    public List<EnumDto> getAnnotationCategories() {
+        return enumToDtoList(AnnotationCategory.class);
+    }
+    @GetMapping("/annotation-statuses")
+    public List<EnumDto> getAnnotationStatuses() {
+        return enumToDtoList(AnnotationStatus.class);
     }
 
 }

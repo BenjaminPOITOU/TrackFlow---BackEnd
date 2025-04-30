@@ -38,6 +38,7 @@ import java.util.Optional;
 // Et /api/compositions/{compositionId}/versions pour celles liées à une composition
 // Choisissons une approche mixte pour la clarté des exemples.
 @RequestMapping("/api")
+@CrossOrigin(origins = "http://localhost:3000")
 public class VersionController {
 
     private static final Logger logger = LoggerFactory.getLogger(VersionController.class);
