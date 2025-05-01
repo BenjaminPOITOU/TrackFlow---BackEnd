@@ -6,6 +6,7 @@ import com.eql.cda.track.flow.dto.annotationDto.AnnotationResponseDto;
 import com.eql.cda.track.flow.dto.annotationDto.AnnotationUpdateDto;
 import com.eql.cda.track.flow.dto.annotationDto.NewVersionAnnotationDto;
 import com.eql.cda.track.flow.entity.Annotation;
+import com.eql.cda.track.flow.entity.AnnotationCategory;
 import com.eql.cda.track.flow.entity.AnnotationStatus;
 import com.eql.cda.track.flow.entity.Version;
 import org.springframework.stereotype.Service;
@@ -40,17 +41,14 @@ public class AnnotationMapper {
 
         Annotation annotation = new Annotation();
 
-        // Lier l'annotation à sa version parente
+
         annotation.setVersion(version);
 
-        // Mapper les champs depuis le DTO vers l'Entité
         annotation.setContent(dto.content());
-        annotation.setTimePosition(dto.timePosition()); // Record: accès direct sans get()
-        annotation.setAnnotationCategory(dto.category());
-        annotation.setAnnotationStatus(dto.status());
+        annotation.setTimePosition(dto.timePosition());
+        annotation.setAnnotationCategory(AnnotationCategory.fromLabel(dto.category()));
+        annotation.setAnnotationStatus(AnnotationStatus.fromLabel(dto.status()));
 
-        // Les champs comme 'id', 'creationDate', 'supressionDate' sont gérés
-        // par JPA ou par défaut (null pour supressionDate).
 
         return annotation;
     }

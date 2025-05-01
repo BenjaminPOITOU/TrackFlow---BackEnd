@@ -17,8 +17,8 @@ public record AnnotationCreateDto(
         Float timePosition, // Nullable
 
         @NotNull
-        AnnotationCategory category,
+        String category,
 
         @NotNull
-        AnnotationStatus status // Le frontend peut envoyer la valeur initiale)
+        String status // Le frontend peut envoyer la valeur initiale)
 ) {}
