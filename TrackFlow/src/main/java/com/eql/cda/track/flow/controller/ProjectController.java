@@ -46,13 +46,13 @@ public class ProjectController {
      * @return A ResponseEntity with status 201 (Created), a Location header pointing to the new resource,
      * and the created project data in the body.
      */
-    @PostMapping
+    @PostMapping("/users/{userId}/projects")
     public ResponseEntity<ProjectViewDto> createProject(@PathVariable Long userId, @Valid @RequestBody ProjectCreateDto projectCreateDto) {
         ProjectViewDto createdProject = projectService.createProject(userId, projectCreateDto);
 
         URI location = ServletUriComponentsBuilder
                 .fromCurrentRequest()
-                .path("/users/{userId}/projects/{projectId}")
+                .path("/users/{userId}/projects")
                 .buildAndExpand(createdProject.getId())
                 .toUri();
 

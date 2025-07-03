@@ -55,7 +55,7 @@ public class EnumController {
      *
      * @return Une Map contenant toutes les listes d'enums nécessaires pour le formulaire de création de projet.
      */
-    @GetMapping("/projects/enums")
+    @GetMapping("/projects")
     public Map<String, List<EnumDto>> getAllProjectEnums() {
         Map<String, List<EnumDto>> allEnums = new HashMap<>();
 
