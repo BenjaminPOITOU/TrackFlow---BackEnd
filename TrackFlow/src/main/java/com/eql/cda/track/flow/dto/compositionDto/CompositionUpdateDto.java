@@ -1,37 +1,31 @@
 package com.eql.cda.track.flow.dto.compositionDto;
 
+import com.eql.cda.track.flow.entity.Composition;
 import com.eql.cda.track.flow.entity.CompositionStatus;
-import com.eql.cda.track.flow.validation.Constants;
-import jakarta.persistence.Column;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.util.List;
 
+/**
+ * A Data Transfer Object used to carry update information for a
+ * {@link Composition}.
+ * All fields in this DTO are optional, allowing for partial updates of a composition.
+ */
 public class CompositionUpdateDto {
 
-    @Size(max = Constants.COMPOSITION_TITLE_MAX_LENGTH, message = Constants.COMPOSITION_TITLE_MAX_LENGTH_MSG)
-    @Column(length = Constants.COMPOSITION_TITLE_MAX_LENGTH)
+    @Size(max = 50, message = "Title must be less than 50 characters.")
     private String title;
 
-
-    @Column(length = Constants.COMPOSITION_DESC_MAX_LENGTH)
     private CompositionStatus compositionStatus;
-
     private List<String> subGender;
     private String description;
     private String illustration;
 
+    /**
+     * Default constructor required for framework instantiation.
+     */
     public CompositionUpdateDto() {
     }
-    public CompositionUpdateDto(String title, CompositionStatus compositionStatus, List<String> subGender, String description, String illustration) {
-        this.title = title;
-        this.compositionStatus = compositionStatus;
-        this.subGender = subGender;
-        this.description = description;
-        this.illustration = illustration;
-    }
-
 
     public String getTitle() {
         return title;

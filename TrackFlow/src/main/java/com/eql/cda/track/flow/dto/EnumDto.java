@@ -2,8 +2,8 @@ package com.eql.cda.track.flow.dto;
 
 
 public class EnumDto {
-    private String value; // La valeur technique (nom de l'enum constant)
-    private String label; // Le label lisible par l'utilisateur
+    private String value;
+    private String label;
 
     public EnumDto(String value, String label) {
         this.value = value;

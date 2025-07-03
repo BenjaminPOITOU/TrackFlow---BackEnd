@@ -1,70 +1,74 @@
 package com.eql.cda.track.flow.security;
 
+import com.eql.cda.track.flow.security.JwtAuthenticationFilter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+/**
+ * @file Main configuration class for Spring Security.
+ */
+
+/**
+ * This class configures the application's security settings. It defines URL-based
+ * security rules, configures JWT-based authentication via a custom filter, and
+ * sets up essential security components like the PasswordEncoder and AuthenticationManager.
+ */
 @Configuration
-@EnableWebSecurity // Active la configuration de sécurité web de Spring
+@EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
-    // Déclare un Bean SecurityFilterChain pour définir les règles de sécurité HTTP
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @Autowired
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+    }
+
+    /**
+     * Defines the password encoder bean.
+     */
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    /**
+     * Exposes the AuthenticationManager as a Bean.
+     */
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
+        return authenticationConfiguration.getAuthenticationManager();
+    }
+
+    /**
+     * Configures the main security filter chain.
+     */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // 1. Désactiver CSRF (Cross-Site Request Forgery) - Courant pour les API REST stateless
                 .csrf(csrf -> csrf.disable())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        .anyRequest().authenticated()
+                );
 
-                // 2. Configurer les règles d'autorisation des requêtes HTTP
-                .authorizeHttpRequests(authz -> authz
-                        // Autoriser l'accès sans authentification aux endpoints d'API pour l'enregistrement et l'authentification
-                        .requestMatchers(new AntPathRequestMatcher("/api/auth/**")).permitAll()
-
-                        // ----> AUTORISER SWAGGER UI <----
-                        .requestMatchers(
-                                new AntPathRequestMatcher("/"), // Si la racine redirige vers Swagger
-                                new AntPathRequestMatcher("/swagger-ui.html"), // La page HTML principale
-                                new AntPathRequestMatcher("/swagger-ui/**"), // Ressources de l'UI (JS, CSS...)
-                                new AntPathRequestMatcher("/v3/api-docs/**") // La spec OpenAPI JSON/YAML
-                        ).permitAll() // Autoriser l'accès sans authentification
-
-                        // Toutes les AUTRES requêtes doivent être authentifiées (sera appliqué plus tard)
-                        // Pour l'instant, on pourrait autoriser tout pour faciliter le développement SANS sécurité réelle
-                        // .anyRequest().authenticated() // C'est ce que tu auras en prod
-                        .anyRequest().permitAll()      // !!! TEMPORAIRE : Autorise tout le reste sans auth !!!
-                )
-
-                // 3. Gérer la session (pour API REST/JWT, on la veut généralement STATELESS)
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS) // Ne pas créer de session HTTP
-                )
-
-                // 4. Désactiver la connexion par formulaire par défaut (on utilise l'API /api/auth/authenticate)
-                .formLogin(form -> form.disable())
-                // 5. Désactiver HTTP Basic par défaut
-                .httpBasic(basic -> basic.disable());
-
-        // **TODO (Sécurité):** Plus tard, tu ajouteras ici :
-        // - La configuration du AuthenticationProvider (avec PasswordEncoder).
-        // - Le filtre JWT pour valider les tokens sur les requêtes authentifiées.
-        // - Des règles plus strictes dans authorizeHttpRequests (ex: .anyRequest().authenticated()).
+        // Add our custom JWT filter before the standard authentication filter
+        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
-
-    // **TODO (Sécurité):** Plus tard, tu ajouteras un Bean pour PasswordEncoder :
-    // @Bean
-    // public PasswordEncoder passwordEncoder() {
-    //     return new BCryptPasswordEncoder();
-    // }
-
-    // **TODO (Sécurité):** Plus tard, tu ajouteras un Bean pour AuthenticationManager :
-    // @Bean
-    // public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-    //    return config.getAuthenticationManager();
-    // }
 }

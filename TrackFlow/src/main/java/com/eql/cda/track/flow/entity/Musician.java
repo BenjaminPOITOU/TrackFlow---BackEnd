@@ -1,24 +1,17 @@
 package com.eql.cda.track.flow.entity;
 
-
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
-import org.checkerframework.common.aliasing.qual.Unique;
-
-import java.time.Instant;
-
+import jakarta.persistence.*;
 import java.util.List;
-import java.util.Set;
 
+/**
+ * Represents a Musician user.
+ * This entity inherits all role information from the base User class
+ * and adds musician-specific attributes like biography and playlists.
+ */
 @Entity
 @Table(name = "musicians")
-public class Musician extends User{
-
+@PrimaryKeyJoinColumn(name = "user_id")
+public class Musician extends User {
 
     private String address;
     private String mobile;
@@ -29,58 +22,18 @@ public class Musician extends User{
     private List<Playlist> playlists;
 
     public Musician() {
+        super();
     }
 
-
-    public Musician(List<Playlist> playlists) {
-        this.playlists = playlists;
-    }
-
-
-    public Musician(Long id, String lastName, String firstName, @Unique String login, String password, Instant creationDate, Instant updateDate, Instant suppressionDate, List<Project> projects, UserRole userRole, Set<Access> accesses, String address, String mobile, String biography, String picture, List<Playlist> playlists) {
-        super(id, lastName, firstName, login, password, creationDate, updateDate, suppressionDate, projects, userRole, accesses);
-        this.address = address;
-        this.mobile = mobile;
-        this.biography = biography;
-        this.picture = picture;
-        this.playlists = playlists;
-    }
-
-    public String getAddress() {
-        return address;
-    }
-    public void setAddress(String address) {
-        this.address = address;
-    }
-
-    public String getMobile() {
-        return mobile;
-    }
-    public void setMobile(String mobile) {
-        this.mobile = mobile;
-    }
-
-    public String getBiography() {
-        return biography;
-    }
-    public void setBiography(String biography) {
-        this.biography = biography;
-    }
-
-    public String getPicture() {
-        return picture;
-    }
-
-    public void setPicture(String picture) {
-        this.picture = picture;
-    }
-
-    public List<Playlist> getPlaylists() {
-        return playlists;
-    }
-    public void setPlaylists(List<Playlist> playlists) {
-        this.playlists = playlists;
-    }
-
-
+    // Getters and setters for musician-specific fields...
+    public String getAddress() { return address; }
+    public void setAddress(String address) { this.address = address; }
+    public String getMobile() { return mobile; }
+    public void setMobile(String mobile) { this.mobile = mobile; }
+    public String getBiography() { return biography; }
+    public void setBiography(String biography) { this.biography = biography; }
+    public String getPicture() { return picture; }
+    public void setPicture(String picture) { this.picture = picture; }
+    public List<Playlist> getPlaylists() { return playlists; }
+    public void setPlaylists(List<Playlist> playlists) { this.playlists = playlists; }
 }

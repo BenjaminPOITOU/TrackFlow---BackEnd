@@ -1,149 +1,140 @@
 package com.eql.cda.track.flow.service.implementation;
 
+import com.eql.cda.track.flow.dto.branchDto.BranchCreateDto;
 import com.eql.cda.track.flow.dto.branchDto.BranchSummaryDto;
+import com.eql.cda.track.flow.dto.branchDto.BranchUpdateDto;
 import com.eql.cda.track.flow.entity.Branch;
 import com.eql.cda.track.flow.entity.Composition;
 import com.eql.cda.track.flow.repository.BranchRepository;
 import com.eql.cda.track.flow.repository.CompositionRepository;
 import com.eql.cda.track.flow.service.BranchService;
+import com.eql.cda.track.flow.service.mapper.BranchMapper;
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
+/**
+ * Implementation of the {@link BranchService} interface. This class orchestrates
+ * all business logic related to branches, interacting with the persistence layer,
+ * handling validation, and mapping data.
+ */
 @Service
+@Transactional
 public class BranchServiceImpl implements BranchService {
 
-    private static final Logger logger = LogManager.getLogger();
+    private static final Logger log = LoggerFactory.getLogger(BranchServiceImpl.class);
 
-    BranchRepository branchRepository;
-    CompositionRepository compositionRepository;
+    private final BranchRepository branchRepository;
+    private final CompositionRepository compositionRepository;
+    private final BranchMapper branchMapper;
 
+    /**
+     * Constructs the service with its required dependencies.
+     *
+     * @param branchRepository The repository for branch data access.
+     * @param compositionRepository The repository for composition data access to validate context.
+     * @param branchMapper The mapper for converting between branch entities and DTOs.
+     */
     @Autowired
-    public BranchServiceImpl(BranchRepository branchRepository, CompositionRepository compositionRepository) {
+    public BranchServiceImpl(BranchRepository branchRepository, CompositionRepository compositionRepository, BranchMapper branchMapper) {
         this.branchRepository = branchRepository;
         this.compositionRepository = compositionRepository;
+        this.branchMapper = branchMapper;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public List<BranchSummaryDto> getAllBranches(Long compositionId) {
+    public BranchSummaryDto createBranch(Long projectId, Long compositionId, BranchCreateDto branchCreateDto) {
+        Composition composition = findCompositionAndValidateContext(projectId, compositionId);
 
-        Objects.requireNonNull(compositionId, "Composition ID cannot be null");
-        if(!compositionRepository.existsById(compositionId)){
-            throw new EntityNotFoundException("Composition not found with ID: " + compositionId + ", cannot delete.");
+        Branch branch = branchMapper.toEntity(branchCreateDto);
+        branch.setComposition(composition);
+
+        if (branchCreateDto.getBranchParentId() != null) {
+            Branch parentBranch = branchRepository.findById(branchCreateDto.getBranchParentId())
+                    .orElseThrow(() -> new EntityNotFoundException("Parent branch not found with id: " + branchCreateDto.getBranchParentId()));
+            branch.setParent(parentBranch);
         }
 
-        List<Branch> branches = branchRepository.findAllByCompositionId(compositionId);
+        Branch savedBranch = branchRepository.save(branch);
+        log.info("Created branch with ID {} for composition ID {}", savedBranch.getId(), compositionId);
 
-       return branches.stream()
-               .map(this::mapEntityToSummaryDto)
-               .collect(Collectors.toList());
-
-
+        return branchMapper.toSummaryDto(savedBranch);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    @Transactional // Important pour que la création soit dans la même transaction si nécessaire
-    public Branch findOrCreateBranch(Composition composition, Long branchId, String newBranchName, Long parentBranchId, String branchDescription) {
-        Branch branch;
-        Long compositionId = composition.getId(); // Récupère l'ID pour la recherche
+    @Transactional(readOnly = true)
+    public List<BranchSummaryDto> getAllBranchesForComposition(Long projectId, Long compositionId) {
+        findCompositionAndValidateContext(projectId, compositionId);
+        List<Branch> branches = branchRepository.findByCompositionIdOrderByLastUpdateDateDesc(compositionId);
+        return branches.stream()
+                .map(branchMapper::toSummaryDto)
+                .collect(Collectors.toList());
+    }
 
-        if (branchId != null) {
-            // --- Logique pour trouver par ID (reste inchangée) ---
-            logger.debug("Finding existing branch with ID: {} for Composition {}", branchId, compositionId);
-            branch = branchRepository.findById(branchId)
-                    .orElseThrow(() -> {
-                        logger.error("Branch not found with ID: {}", branchId);
-                        return new EntityNotFoundException("Branch not found with id: " + branchId);
-                    });
-            if (!branch.getComposition().getId().equals(compositionId)) {
-                logger.error("Branch {} does not belong to Composition {}", branchId, compositionId);
-                throw new IllegalArgumentException("Branch " + branchId + " does not belong to Composition " + compositionId);
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public BranchSummaryDto updateBranch(Long projectId, Long compositionId, Long branchId, BranchUpdateDto branchUpdateDto) {
+        Branch branchToUpdate = findBranchAndValidateContext(projectId, compositionId, branchId);
+
+        branchMapper.updateFromDto(branchUpdateDto, branchToUpdate);
+
+        if (branchUpdateDto.getParentBranchId() != null) {
+            if (Objects.equals(branchUpdateDto.getParentBranchId(), branchId)) {
+                throw new IllegalArgumentException("A branch cannot be its own parent.");
             }
-            logger.info("Using existing branch: ID={}, Name={} for Composition {}", branch.getId(), branch.getName(), compositionId);
-
-        } else if (newBranchName != null && !newBranchName.isBlank()) {
-            // --- Logique pour trouver OU créer par nom --- (MODIFIÉE)
-            String cleanBranchName = newBranchName.trim(); // Nettoyer le nom
-            logger.debug("Attempting to find or create branch with name: '{}' for Composition {}", cleanBranchName, compositionId);
-
-            // 1. Essayer de trouver la branche par nom ET composition ID
-            Optional<Branch> existingBranchOpt = branchRepository.findByCompositionIdAndName(compositionId, cleanBranchName);
-
-            if (existingBranchOpt.isPresent()) {
-                // 2a. Si trouvée, utiliser la branche existante
-                branch = existingBranchOpt.get();
-                logger.info("Found existing branch by name: ID={}, Name={} for Composition {}", branch.getId(), branch.getName(), compositionId);
-                // Optionnel : Mettre à jour la description si une nouvelle est fournie ?
-                if (branchDescription != null && !branchDescription.equals(branch.getDescription())) {
-                    logger.debug("Updating description for existing branch {} to '{}'", branch.getId(), branchDescription);
-                    branch.setDescription(branchDescription);
-                    branch = branchRepository.save(branch); // Sauvegarder la mise à jour de description
-                }
-
-            } else {
-                // 2b. Si non trouvée, créer la nouvelle branche
-                logger.debug("Branch '{}' not found for Composition {}. Creating new branch. ParentBranchId: {}", cleanBranchName, compositionId, parentBranchId);
-                branch = new Branch();
-                branch.setName(cleanBranchName);
-                branch.setComposition(composition);
-                branch.setDescription(branchDescription); // Utiliser la description fournie
-
-                // Valider et lier la branche parente si nécessaire (logique inchangée pour l'instant)
-                if (parentBranchId != null) {
-                    Branch parentBranch = findAndValidateParentBranch(parentBranchId, compositionId);
-                    // Lier si tu as un champ parent: branch.setParentBranch(parentBranch);
-                }
-
-                // Sauvegarder la nouvelle branche
-                branch = branchRepository.save(branch);
-                logger.info("Created new branch: ID={}, Name={} for Composition {}", branch.getId(), branch.getName(), compositionId);
-            }
-
-        } else {
-            // --- Logique d'erreur (reste inchangée) ---
-            logger.error("Logic error: findOrCreateBranch called without branchId or newBranchName for Composition {}", compositionId);
-            throw new IllegalArgumentException("Internal error: Either branchId or newBranchName must be provided for branch creation/retrieval.");
+            Branch newParent = branchRepository.findById(branchUpdateDto.getParentBranchId())
+                    .orElseThrow(() -> new EntityNotFoundException("New parent branch not found with id: " + branchUpdateDto.getParentBranchId()));
+            branchToUpdate.setParent(newParent);
         }
+
+        Branch updatedBranch = branchRepository.save(branchToUpdate);
+        log.info("Updated branch with ID {}", updatedBranch.getId());
+
+        return branchMapper.toSummaryDto(updatedBranch);
+    }
+
+    private Composition findCompositionAndValidateContext(Long projectId, Long compositionId) {
+        Composition composition = compositionRepository.findById(compositionId)
+                .orElseThrow(() -> new EntityNotFoundException("Composition not found with id: " + compositionId));
+
+        if (composition.getProject() == null || !Objects.equals(composition.getProject().getId(), projectId)) {
+            log.warn("Access violation: Composition {} does not belong to project {}", compositionId, projectId);
+            throw new AccessDeniedException("Composition does not belong to the specified project.");
+        }
+        return composition;
+    }
+
+    private Branch findBranchAndValidateContext(Long projectId, Long compositionId, Long branchId) {
+        Branch branch = branchRepository.findById(branchId)
+                .orElseThrow(() -> new EntityNotFoundException("Branch not found with id: " + branchId));
+
+        Composition composition = branch.getComposition();
+        if (composition == null || !Objects.equals(composition.getId(), compositionId)) {
+            log.warn("Access violation: Branch {} does not belong to composition {}", branchId, compositionId);
+            throw new AccessDeniedException("Branch does not belong to the specified composition.");
+        }
+
+        if (composition.getProject() == null || !Objects.equals(composition.getProject().getId(), projectId)) {
+            log.warn("Access violation: The project context is incorrect for branch {}", branchId);
+            throw new AccessDeniedException("Branch does not belong to a composition in the specified project.");
+        }
+
         return branch;
-    }
-
-    private Branch findAndValidateParentBranch(Long parentBranchId, Long compositionId) {
-        logger.debug("Finding parent branch with ID: {}", parentBranchId);
-        Branch parentBranch = branchRepository.findById(parentBranchId)
-                .orElseThrow(() -> {
-                    logger.error("Parent Branch not found with ID: {}", parentBranchId);
-                    return new EntityNotFoundException("Parent Branch not found with id: " + parentBranchId);
-                });
-        // Valider l'appartenance de la branche parente à la même composition
-        if (!parentBranch.getComposition().getId().equals(compositionId)) {
-            logger.error("Parent Branch {} does not belong to Composition {}", parentBranchId, compositionId);
-            throw new IllegalArgumentException("Parent Branch " + parentBranchId + " does not belong to Composition " + compositionId);
-        }
-        logger.debug("Parent Branch {} found and validated for Composition {}", parentBranchId, compositionId);
-        return parentBranch;
-    }
-
-    private BranchSummaryDto mapEntityToSummaryDto(Branch branche) {
-
-        if (branche == null) {
-            return null;
-        }
-
-        BranchSummaryDto branchSummaryDto = new BranchSummaryDto();
-        branchSummaryDto.setId(branche.getId());
-        branchSummaryDto.setName(branche.getName());
-
-        return branchSummaryDto;
-
-
     }
 }

@@ -1,120 +1,74 @@
 package com.eql.cda.track.flow.dto.userDto.musicianDto;
 
-import com.eql.cda.track.flow.entity.UserRole;
-
+import com.eql.cda.track.flow.entity.ProfileType;
 import java.time.Instant;
-import java.util.Date;
 
+/**
+ * @file A DTO for displaying a Musician's public profile information.
+ */
+
+/**
+ * A Data Transfer Object that provides a detailed, read-only representation of a Musician.
+ * It is designed to be sent to the client to display a musician's profile.
+ * It safely exposes non-sensitive information, including the user's specific profile type
+ * (e.g., Artist, Producer).
+ */
 public class MusicianViewDto {
 
-    private Long id; // Essentiel pour identifier l'utilisateur
-    private String login; // Ou login, selon ce que tu utilises comme identifiant principal
+    private Long id;
     private String firstName;
     private String lastName;
-    private String mobile;
-    private String address;
     private String biography;
     private String picture;
-    private UserRole userRole;
+    private ProfileType profileType;
     private Instant creationDate;
-
-
-
-    // Constructeur (souvent utilisé par le mapper/service pour convertir l'entité User en UserViewDto)
-    public MusicianViewDto(Long id, String login, String firstName, String lastName, String mobile, String address, String biography, String picture, UserRole userRole, Instant creationDate) {
-        this.id = id;
-        this.login = login;
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.mobile = mobile;
-        this.address = address;
-        this.biography = biography;
-        this.picture = picture;
-        this.userRole = userRole;
-        this.creationDate = creationDate;
-    }
-
-    // Getters (Setters généralement pas nécessaires pour un DTO de lecture)
 
     public Long getId() {
         return id;
     }
-
-    public String getLogin() {
-        return login;
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getFirstName() {
         return firstName;
     }
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
 
     public String getLastName() {
         return lastName;
     }
-
-    public String getMobile() {
-        return mobile;
-    }
-
-    public String getAddress() {
-        return address;
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
     }
 
     public String getBiography() {
         return biography;
     }
+    public void setBiography(String biography) {
+        this.biography = biography;
+    }
 
     public String getPicture() {
         return picture;
     }
+    public void setPicture(String picture) {
+        this.picture = picture;
+    }
 
-    public UserRole getUserRole() {
-        return userRole;
+    public ProfileType getProfileType() {
+        return profileType;
+    }
+    public void setProfileType(ProfileType profileType) {
+        this.profileType = profileType;
     }
 
     public Instant getCreationDate() {
         return creationDate;
     }
-
-    // Setters (inclus car pas de Lombok, mais souvent non utilisés en pratique pour la lecture)
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public void setLogin(String login) {
-        this.login = login;
-    }
-
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
-    }
-
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
-    }
-
-    public void setMobile(String mobile) {
-        this.mobile = mobile;
-    }
-
-    public void setAddress(String address) {
-        this.address = address;
-    }
-
-    public void setBiography(String biography) {
-        this.biography = biography;
-    }
-
-    public void setPictureURL(String pictureURL) {
-        this.picture = pictureURL;
-    }
-
-    public void setUserRole(UserRole userRole) {
-        this.userRole = userRole;
-    }
-
     public void setCreationDate(Instant creationDate) {
         this.creationDate = creationDate;
     }
-
 }

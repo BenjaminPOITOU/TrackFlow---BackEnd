@@ -1,62 +1,39 @@
 package com.eql.cda.track.flow.entity;
 
-import com.eql.cda.track.flow.validation.Constants;
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.CollectionTable;
-import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EntityListeners;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
-
-
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * Represents a musical project in the system.
+ */
 @Entity
 @Table(name = "projects")
-@EntityListeners(AuditingEntityListener.class)
 public class Project {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Size(max = Constants.PROJECT_TITLE_MAX_LENGTH, message = Constants.PROJECT_TITLE_MAX_LENGTH_MSG)
-    @Column(length = Constants.PROJECT_TITLE_MAX_LENGTH)
+    @Size(max = 150)
+    @Column(length = 150)
     private String title;
 
-    @Size(max = Constants.PROJECT_DESC_MAX_LENGTH, message = Constants.PROJECT_DESC_MAX_LENGTH_MSG)
-    @Column(length = Constants.PROJECT_DESC_MAX_LENGTH)
+    @Size(max = 2000)
+    @Column(length = 2000)
     private String description;
 
     private String illustration;
     private boolean archived;
     private Integer projectOrder;
 
-    @CreatedDate
-    @Column(nullable = false, updatable = false) // Bonnes pratiques audit
+    @Column(nullable = false, updatable = false)
     private Instant createdDate;
 
-    @LastModifiedDate
-    @Column(nullable = false) // Bonnes pratiques audit
+    @Column(nullable = false)
     private Instant lastUpdateDate;
 
     private Instant supressionDate;
@@ -64,19 +41,16 @@ public class Project {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    @JsonBackReference
     private User user;
 
     @ElementCollection(targetClass = ProjectMusicalGenderPreDefined.class, fetch = FetchType.LAZY)
-    @CollectionTable(name="project_musical_gender_predefined", joinColumns = @JoinColumn(name = "project_id"))
+    @CollectionTable(name = "project_musical_gender_predefined", joinColumns = @JoinColumn(name = "project_id"))
     @Enumerated(EnumType.STRING)
-    @Column(name="gender")
-    private Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined = new HashSet<>(); // <-- ****** TYPE CHANGÉ EN Set ******
+    @Column(name = "gender")
+    private Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined = new HashSet<>();
 
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @JsonManagedReference
-    private Set<Composition> compositions = new HashSet<>(); // <-- ****** TYPE CHANGÉ EN Set ******
-
+    private Set<Composition> compositions = new HashSet<>();
 
     @Enumerated(EnumType.STRING)
     @Column(name = "project_status")
@@ -91,169 +65,47 @@ public class Project {
     private ProjectCommercialStatus projectCommercialStatus;
 
     @ElementCollection(targetClass = ProjectPurpose.class, fetch = FetchType.LAZY)
-    @CollectionTable(name="project_purpose", joinColumns =  @JoinColumn(name = "project_id"))
+    @CollectionTable(name = "project_purpose", joinColumns = @JoinColumn(name = "project_id"))
     @Enumerated(EnumType.STRING)
-    @Column(name="purpose")
-    // Préférer Set pour les collections non ordonnées et éviter les doublons
+    @Column(name = "purpose")
     private Set<ProjectPurpose> projectPurposes = new HashSet<>();
-
-
-
-
 
     public Project() {
     }
 
-    public Project(Long id, String title, String description, String illustration, boolean archived, Integer projectOrder, Instant createdDate, Instant lastUpdateDate, Instant supressionDate, Instant definitivSupressionDate, User user, Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined, Set<Composition> compositions, ProjectStatus projectStatus, ProjectType projectType, ProjectCommercialStatus projectCommercialStatus, Set<ProjectPurpose> projectPurposes) {
-        this.id = id;
-        this.title = title;
-        this.description = description;
-        this.illustration = illustration;
-        this.archived = archived;
-        this.projectOrder = projectOrder;
-        this.createdDate = createdDate;
-        this.lastUpdateDate = lastUpdateDate;
-        this.supressionDate = supressionDate;
-        this.definitivSupressionDate = definitivSupressionDate;
-        this.user = user;
-        this.projectMusicalGendersPreDefined = projectMusicalGendersPreDefined;
-        this.compositions = compositions;
-        this.projectStatus = projectStatus;
-        this.projectType = projectType;
-        this.projectCommercialStatus = projectCommercialStatus;
-        this.projectPurposes = projectPurposes;
-    }
 
-    public Long getId() {
-        return id;
-    }
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public String getIllustration() {
-        return illustration;
-    }
-    public void setIllustration(String illustration) {
-        this.illustration = illustration;
-    }
-
-    public Boolean getArchived() {
-        return archived;
-    }
-    public void setArchived(Boolean archived) {
-        this.archived = archived;
-    }
-
-
-    public Integer getProjectOrder() {
-        return projectOrder;
-    }
-    public void setProjectOrder(Integer projectOrder) {
-        this.projectOrder = projectOrder;
-    }
-
-
-    public Instant getLastUpdateDate() {
-        return lastUpdateDate;
-    }
-    public void setLastUpdateDate(Instant lastUpdateDate) {
-        this.lastUpdateDate = lastUpdateDate;
-    }
-
-    public Instant getSupressionDate() {
-        return supressionDate;
-    }
-    public void setSupressionDate(Instant supressionDate) {
-        this.supressionDate = supressionDate;
-    }
-
-    public Instant getDefinitivSupressionDate() {
-        return definitivSupressionDate;
-    }
-
-    public void setDefinitivSupressionDate(Instant definitivSupressionDate) {
-        this.definitivSupressionDate = definitivSupressionDate;
-    }
-
-    public User getUser() {
-        return user;
-    }
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public boolean isArchived() {
-        return archived;
-    }
-    public void setArchived(boolean archived) {
-        this.archived = archived;
-    }
-
-    public Instant getCreatedDate() {
-        return createdDate;
-    }
-    public void setCreatedDate(Instant createdDate) {
-        this.createdDate = createdDate;
-    }
-
-    public void setProjectMusicalGendersPreDefined(Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined) {
-        this.projectMusicalGendersPreDefined = projectMusicalGendersPreDefined;
-    }
-
-    public Set<Composition> getCompositions() {
-        return compositions;
-    }
-
-    public void setCompositions(Set<Composition> compositions) {
-        this.compositions = compositions;
-    }
-
-    public ProjectStatus getProjectStatus() {
-        return projectStatus;
-    }
-    public void setProjectStatus(ProjectStatus projectStatus) {
-        this.projectStatus = projectStatus;
-    }
-
-    public ProjectType getProjectType() {
-        return projectType;
-    }
-    public void setProjectType(ProjectType projectType) {
-        this.projectType = projectType;
-    }
-
-    public ProjectCommercialStatus getProjectCommercialStatus() {
-        return projectCommercialStatus;
-    }
-    public void setProjectCommercialStatus(ProjectCommercialStatus projectCommercialStatus) {
-        this.projectCommercialStatus = projectCommercialStatus;
-    }
-
-
-    public Set<ProjectPurpose> getProjectPurposes() {
-        return projectPurposes;
-    }
-
-    public void setProjectPurposes(Set<ProjectPurpose> projectPurposes) {
-        this.projectPurposes = projectPurposes;
-    }
-
-    public Set<ProjectMusicalGenderPreDefined> getProjectMusicalGendersPreDefined() {
-        return projectMusicalGendersPreDefined;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+    public String getIllustration() { return illustration; }
+    public void setIllustration(String illustration) { this.illustration = illustration; }
+    public boolean isArchived() { return archived; }
+    public void setArchived(boolean archived) { this.archived = archived; }
+    public Integer getProjectOrder() { return projectOrder; }
+    public void setProjectOrder(Integer projectOrder) { this.projectOrder = projectOrder; }
+    public Instant getCreatedDate() { return createdDate; }
+    public void setCreatedDate(Instant createdDate) { this.createdDate = createdDate; }
+    public Instant getLastUpdateDate() { return lastUpdateDate; }
+    public void setLastUpdateDate(Instant lastUpdateDate) { this.lastUpdateDate = lastUpdateDate; }
+    public Instant getSupressionDate() { return supressionDate; }
+    public void setSupressionDate(Instant supressionDate) { this.supressionDate = supressionDate; }
+    public Instant getDefinitivSupressionDate() { return definitivSupressionDate; }
+    public void setDefinitivSupressionDate(Instant definitivSupressionDate) { this.definitivSupressionDate = definitivSupressionDate; }
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
+    public Set<ProjectMusicalGenderPreDefined> getProjectMusicalGendersPreDefined() { return projectMusicalGendersPreDefined; }
+    public void setProjectMusicalGendersPreDefined(Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined) { this.projectMusicalGendersPreDefined = projectMusicalGendersPreDefined; }
+    public Set<Composition> getCompositions() { return compositions; }
+    public void setCompositions(Set<Composition> compositions) { this.compositions = compositions; }
+    public ProjectStatus getProjectStatus() { return projectStatus; }
+    public void setProjectStatus(ProjectStatus projectStatus) { this.projectStatus = projectStatus; }
+    public ProjectType getProjectType() { return projectType; }
+    public void setProjectType(ProjectType projectType) { this.projectType = projectType; }
+    public ProjectCommercialStatus getProjectCommercialStatus() { return projectCommercialStatus; }
+    public void setProjectCommercialStatus(ProjectCommercialStatus projectCommercialStatus) { this.projectCommercialStatus = projectCommercialStatus; }
+    public Set<ProjectPurpose> getProjectPurposes() { return projectPurposes; }
+    public void setProjectPurposes(Set<ProjectPurpose> projectPurposes) { this.projectPurposes = projectPurposes; }
 }

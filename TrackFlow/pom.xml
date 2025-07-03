@@ -35,8 +35,6 @@
         </dependencies>
     </dependencyManagement>
 
-
-    <!-- On exclut le logger par défaut de Spring Boot pour utiliser log4j -->
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -60,16 +58,25 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
+
+        <!-- =================================================================== -->
+        <!-- == MODIFICATION MINIMALE - MISE A JOUR DES DEPENDANCES JWT == -->
+        <!-- Suppression des anciennes dépendances 'jjwt:0.9.1' et 'jaxb-api' -->
+        <!-- Remplacement par le triptyque moderne de jjwt, compatible Java 17+ -->
+        <!-- Spring Boot Starter Security -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt</artifactId>
             <version>0.9.1</version>
         </dependency>
+
         <dependency>
             <groupId>javax.xml.bind</groupId>
             <artifactId>jaxb-api</artifactId>
             <version>2.3.0</version>
         </dependency>
+        <!-- =================================================================== -->
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
@@ -94,7 +101,6 @@
         <dependency>
             <groupId>com.google.cloud</groupId>
             <artifactId>spring-cloud-gcp-starter-storage</artifactId>
-            <!-- Pas de version ici, elle vient de la BOM -->
         </dependency>
 
 
@@ -105,12 +111,6 @@
             <version>3.0.1</version>
         </dependency>
 
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <version>1.18.32</version> <!-- Vérifie la dernière version sur le site de Lombok ou Maven Central -->
-            <scope>provided</scope> <!-- Important: Lombok est utilisé à la compilation, pas nécessaire à l'exécution -->
-        </dependency>
     </dependencies>
 
     <build>

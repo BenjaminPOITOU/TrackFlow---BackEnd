@@ -34,4 +34,6 @@ public final class Constants {
     // (\\d+)  : Doit suivre un deuxième groupe composé de chiffres (1 ou plusieurs).
     //         -> C'est le 2ème groupe capturant (pour le numéro mineur).
     // $       : Doit se terminer exactement ici. Pas d'autres caractères après.
+
+    public static final  String BRANCH_DEFAULT_DESCRIPTION = "Ceci est la branche principale. Elle sert de base pour toutes les nouvelles versions et les branches dérivées";
 }

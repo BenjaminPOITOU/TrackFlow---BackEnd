@@ -1,20 +1,17 @@
 package com.eql.cda.track.flow.dto.annotationDto;
 
-import com.eql.cda.track.flow.entity.AnnotationCategory;
-import com.eql.cda.track.flow.entity.AnnotationStatus;
-import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
+/**
+ * A Data Transfer Object for partially updating an existing Annotation.
+ * All fields are optional. The category and status are received as strings.
+ */
 public record AnnotationUpdateDto(
-
-        @Size(max = 1000) // Validation s'applique si non-null
+        @Size(max = 1000, message = "Content must be less than 1000 characters.")
         String content,
 
-        @PositiveOrZero
-        Float timePosition,
+        String category,
 
-        AnnotationCategory category,
-
-        AnnotationStatus status
+        String status
 ) {
 }

@@ -1,21 +1,23 @@
 package com.eql.cda.track.flow.dto.projectDto;
 
 import com.eql.cda.track.flow.entity.ProjectStatus;
-
 import java.time.Instant;
 import java.util.List;
 
+/**
+ * DTO for a summary view of a project, typically used in lists or dashboards.
+ */
 public class ProjectSummaryDto {
 
-    private Long id; // <-- Important pour le routing frontend !
+    private Long id;
     private String title;
     private ProjectStatus projectStatus;
     private List<String> projectMusicalGendersPreDefined;
     private Instant createdDate;
 
-
     public ProjectSummaryDto() {
     }
+
     public ProjectSummaryDto(Long id, String title, ProjectStatus projectStatus, List<String> projectMusicalGendersPreDefined, Instant createdDate) {
         this.id = id;
         this.title = title;
@@ -24,10 +26,10 @@ public class ProjectSummaryDto {
         this.createdDate = createdDate;
     }
 
-
     public Long getId() {
         return id;
     }
+
     public void setId(Long id) {
         this.id = id;
     }
@@ -35,6 +37,7 @@ public class ProjectSummaryDto {
     public String getTitle() {
         return title;
     }
+
     public void setTitle(String title) {
         this.title = title;
     }
@@ -42,6 +45,7 @@ public class ProjectSummaryDto {
     public ProjectStatus getProjectStatus() {
         return projectStatus;
     }
+
     public void setProjectStatus(ProjectStatus projectStatus) {
         this.projectStatus = projectStatus;
     }
@@ -49,6 +53,7 @@ public class ProjectSummaryDto {
     public List<String> getProjectMusicalGendersPreDefined() {
         return projectMusicalGendersPreDefined;
     }
+
     public void setProjectMusicalGendersPreDefined(List<String> projectMusicalGendersPreDefined) {
         this.projectMusicalGendersPreDefined = projectMusicalGendersPreDefined;
     }
@@ -56,7 +61,8 @@ public class ProjectSummaryDto {
     public Instant getCreatedDate() {
         return createdDate;
     }
-    public void setCreatedDate(Instant updateDate) {
-        this.createdDate = updateDate;
+
+    public void setCreatedDate(Instant createdDate) {
+        this.createdDate = createdDate;
     }
 }

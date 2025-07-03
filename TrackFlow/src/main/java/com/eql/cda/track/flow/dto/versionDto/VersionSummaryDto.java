@@ -1,41 +1,36 @@
 package com.eql.cda.track.flow.dto.versionDto;
 
-import com.eql.cda.track.flow.entity.Branch;
-
 import java.time.Instant;
 
+/**
+ * A Data Transfer Object that provides a compact, read-only representation of a
+ * {@link com.eql.cda.track.flow.entity.Version}. It is designed for use in lists and summary views.
+ */
 public class VersionSummaryDto {
 
-    private Long versionId;
-    private String versionName;
+    private Long id;
+    private String name;
     private String branchName;
-   // private String author;
     private Instant createdDate;
 
-
+    /**
+     * Default constructor required for framework instantiation.
+     */
     public VersionSummaryDto() {
     }
 
-    public VersionSummaryDto(Long versionId, String versionName, String branchName, Instant createdDate) {
-        this.versionId = versionId;
-        this.versionName = versionName;
-        this.branchName = branchName;
-        //this.author = author;
-        this.createdDate = createdDate;
+    public Long getId() {
+        return id;
+    }
+    public void setId(Long id) {
+        this.id = id;
     }
 
-    public Long getVersionId() {
-        return versionId;
+    public String getName() {
+        return name;
     }
-    public void setVersionId(Long versionId) {
-        this.versionId = versionId;
-    }
-
-    public String getVersionName() {
-        return versionName;
-    }
-    public void setVersionName(String versionName) {
-        this.versionName = versionName;
+    public void setName(String name) {
+        this.name = name;
     }
 
     public String getBranchName() {
@@ -44,13 +39,6 @@ public class VersionSummaryDto {
     public void setBranchName(String branchName) {
         this.branchName = branchName;
     }
-
-    //public String getAuthor() {
-     //   return author;
-    //}
-    //public void setAuthor(String author) {
-    //    this.author = author;
-   // }
 
     public Instant getCreatedDate() {
         return createdDate;

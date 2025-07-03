@@ -1,27 +1,17 @@
 package com.eql.cda.track.flow.entity;
 
-
-import jakarta.persistence.Entity;
-import jakarta.persistence.EntityListeners;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-import org.hibernate.annotations.SQLDelete;
-import org.hibernate.annotations.Where;
+import jakarta.persistence.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
 
+/**
+ * Represents an annotation made on a specific version of a track.
+ * An annotation has content, a time position, a category, and a status.
+ */
 @Entity
 @Table(name = "annotations")
-@SQLDelete(sql = "UPDATE annotations SET supression_date = CURRENT_TIMESTAMP WHERE id = ?")
-@Where(clause = "supression_date IS NULL")
 @EntityListeners(AuditingEntityListener.class)
 public class Annotation {
 
@@ -33,14 +23,15 @@ public class Annotation {
     private Float timePosition;
 
     @CreatedDate
+    @Column(updatable = false)
     private Instant creationDate;
+
     private Instant supressionDate;
     private boolean isResolved;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "version_id")
     private Version version;
-
 
     @Enumerated(EnumType.STRING)
     private AnnotationCategory annotationCategory;
@@ -48,19 +39,10 @@ public class Annotation {
     @Enumerated(EnumType.STRING)
     private AnnotationStatus annotationStatus;
 
+    /**
+     * Default constructor required by the persistence framework (JPA).
+     */
     public Annotation() {
-    }
-
-    public Annotation(Long id, String content, Float timePosition, Instant creationDate, Instant supressionDate, boolean isResolved, Version version, AnnotationCategory annotationCategory, AnnotationStatus annotationStatus) {
-        this.id = id;
-        this.content = content;
-        this.timePosition = timePosition;
-        this.creationDate = creationDate;
-        this.supressionDate = supressionDate;
-        this.isResolved = isResolved;
-        this.version = version;
-        this.annotationCategory = annotationCategory;
-        this.annotationStatus = annotationStatus;
     }
 
     public Long getId() {
@@ -105,14 +87,6 @@ public class Annotation {
         this.isResolved = resolved;
     }
 
-    public void setAnnotationCategory(AnnotationCategory annotationCategory) {
-        this.annotationCategory = annotationCategory;
-    }
-
-    public void setAnnotationStatus(AnnotationStatus annotationStatus) {
-        this.annotationStatus = annotationStatus;
-    }
-
     public Version getVersion() {
         return version;
     }
@@ -123,11 +97,14 @@ public class Annotation {
     public AnnotationCategory getAnnotationCategory() {
         return annotationCategory;
     }
+    public void setAnnotationCategory(AnnotationCategory annotationCategory) {
+        this.annotationCategory = annotationCategory;
+    }
 
     public AnnotationStatus getAnnotationStatus() {
         return annotationStatus;
     }
-
-
-
+    public void setAnnotationStatus(AnnotationStatus annotationStatus) {
+        this.annotationStatus = annotationStatus;
+    }
 }

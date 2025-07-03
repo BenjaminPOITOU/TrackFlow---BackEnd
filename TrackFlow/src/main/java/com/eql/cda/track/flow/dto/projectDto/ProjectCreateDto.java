@@ -1,134 +1,56 @@
 package com.eql.cda.track.flow.dto.projectDto;
 
-import com.eql.cda.track.flow.entity.ProjectCommercialStatus;
-import com.eql.cda.track.flow.entity.ProjectMusicalGenderPreDefined;
-import com.eql.cda.track.flow.entity.ProjectPurpose;
-import com.eql.cda.track.flow.entity.ProjectStatus;
-import com.eql.cda.track.flow.entity.ProjectType;
-import com.eql.cda.track.flow.validation.Constants;
-import jakarta.persistence.Column;
+import com.eql.cda.track.flow.entity.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-
-import java.time.Instant;
-import java.util.List;
 import java.util.Set;
 
+/**
+ * DTO for creating a new project. Contains all required fields for creation.
+ */
 public class ProjectCreateDto {
 
-    private Long id;
-
-    @Size(max = Constants.PROJECT_TITLE_MAX_LENGTH, message = Constants.PROJECT_TITLE_MAX_LENGTH_MSG)
-    @Column(length = Constants.PROJECT_TITLE_MAX_LENGTH)
+    @NotBlank(message = "Project title is mandatory.")
+    @Size(max = 150, message = "Project title cannot exceed 150 characters.")
     private String title;
 
-    @Size(max = Constants.PROJECT_DESC_MAX_LENGTH, message = Constants.PROJECT_DESC_MAX_LENGTH_MSG)
-    @Column(length = Constants.PROJECT_DESC_MAX_LENGTH)
+    @Size(max = 2000, message = "Description cannot exceed 2000 characters.")
     private String description;
 
-
     private String illustration;
+
+    @NotNull(message = "Project status is mandatory.")
     private ProjectStatus projectStatus;
+
+    @NotNull(message = "Project type is mandatory.")
     private ProjectType projectType;
+
+    @NotNull(message = "Commercial status is mandatory.")
     private ProjectCommercialStatus projectCommercialStatus;
+
     private Set<ProjectPurpose> projectPurposes;
     private Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined;
-    private Instant creationDate;
-
 
     public ProjectCreateDto() {
     }
 
+    // Getters and Setters
 
-    public ProjectCreateDto(Long id, String title, String description, String illustration, ProjectStatus projectStatus, ProjectType projectType, ProjectCommercialStatus projectCommercialStatus, Set<ProjectPurpose> projectPurposes, Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined, Instant creationDate) {
-        this.id = id;
-        this.title = title;
-        this.description = description;
-        this.illustration = illustration;
-        this.projectStatus = projectStatus;
-        this.projectType = projectType;
-        this.projectCommercialStatus = projectCommercialStatus;
-        this.projectPurposes = projectPurposes;
-        this.projectMusicalGendersPreDefined = projectMusicalGendersPreDefined;
-        this.creationDate = creationDate;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public String getIllustration() {
-        return illustration;
-    }
-
-    public void setIllustration(String illustration) {
-        this.illustration = illustration;
-    }
-
-    public ProjectStatus getProjectStatus() {
-        return projectStatus;
-    }
-
-    public void setProjectStatus(ProjectStatus projectStatus) {
-        this.projectStatus = projectStatus;
-    }
-
-    public ProjectType getProjectType() {
-        return projectType;
-    }
-
-    public void setProjectType(ProjectType projectType) {
-        this.projectType = projectType;
-    }
-
-    public ProjectCommercialStatus getProjectCommercialStatus() {
-        return projectCommercialStatus;
-    }
-
-    public void setProjectCommercialStatus(ProjectCommercialStatus projectCommercialStatus) {
-        this.projectCommercialStatus = projectCommercialStatus;
-    }
-
-    public Set<ProjectPurpose> getProjectPurposes() {
-        return projectPurposes;
-    }
-
-    public void setProjectPurposes(Set<ProjectPurpose> projectPurposes) {
-        this.projectPurposes = projectPurposes;
-    }
-
-    public Set<ProjectMusicalGenderPreDefined> getProjectMusicalGendersPreDefined() {
-        return projectMusicalGendersPreDefined;
-    }
-
-    public void setProjectMusicalGendersPreDefined(Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined) {
-        this.projectMusicalGendersPreDefined = projectMusicalGendersPreDefined;
-    }
-
-    public Instant getCreationDate() {
-        return creationDate;
-    }
-
-    public void setCreationDate(Instant creationDate) {
-        this.creationDate = creationDate;
-    }
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+    public String getIllustration() { return illustration; }
+    public void setIllustration(String illustration) { this.illustration = illustration; }
+    public ProjectStatus getProjectStatus() { return projectStatus; }
+    public void setProjectStatus(ProjectStatus projectStatus) { this.projectStatus = projectStatus; }
+    public ProjectType getProjectType() { return projectType; }
+    public void setProjectType(ProjectType projectType) { this.projectType = projectType; }
+    public ProjectCommercialStatus getProjectCommercialStatus() { return projectCommercialStatus; }
+    public void setProjectCommercialStatus(ProjectCommercialStatus projectCommercialStatus) { this.projectCommercialStatus = projectCommercialStatus; }
+    public Set<ProjectPurpose> getProjectPurposes() { return projectPurposes; }
+    public void setProjectPurposes(Set<ProjectPurpose> projectPurposes) { this.projectPurposes = projectPurposes; }
+    public Set<ProjectMusicalGenderPreDefined> getProjectMusicalGendersPreDefined() { return projectMusicalGendersPreDefined; }
+    public void setProjectMusicalGendersPreDefined(Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined) { this.projectMusicalGendersPreDefined = projectMusicalGendersPreDefined; }
 }

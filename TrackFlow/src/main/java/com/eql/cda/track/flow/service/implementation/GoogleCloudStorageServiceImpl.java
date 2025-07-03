@@ -12,15 +12,9 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.UUID; // Pour générer des noms unique
+import java.util.UUID;
 
-// @Service : Indique à Spring que cette classe est un "service".
-// Spring va la détecter et la rendre disponible pour d'autres parties de ton application (comme VersionServiceImpl).
 @Service
-// Déclare la classe 'GoogleCloudStorageServiceImpl'.
-// 'implements StorageService' signifie qu'elle promet de fournir toutes les fonctions définies dans l'interface 'StorageService'.
 public class GoogleCloudStorageServiceImpl implements StorageService {
 
 
@@ -37,53 +31,28 @@ public class GoogleCloudStorageServiceImpl implements StorageService {
         this.bucketName = bucketName;
     }
 
-
-
-    // Paramètres :
-    //   - MultipartFile file : Le fichier reçu depuis un formulaire web ou une API.
-    //   - String destinationFileName : Le nom que tu veux donner au fichier DANS le bucket GCS.
-    // 'throws IOException' : Cette méthode peut échouer et lancer une erreur de type 'IOException'.
-    // Retourne : Une chaîne de caractères (String) qui est l'URL publique du fichier uploadé.
     @Override
     public String uploadFile(MultipartFile file, String destinationFileName) throws IOException {
 
-        // Vérifie si le fichier reçu est vide.
         if (file.isEmpty()) {
-            // Si oui, impossible d'uploader. Arrête tout et signale une erreur 'IOException'.
             throw new IOException("Cannot upload empty file.");
         }
 
-        // Prépare l'adresse unique du fichier dans GCS. C'est une combinaison du nom du bucket et du nom du fichier de destination.
         BlobId blobId = BlobId.of(bucketName, destinationFileName);
-        // Prépare les informations (métadonnées) sur le fichier qu'on va uploader.
+
+
         BlobInfo blobInfo = BlobInfo.newBuilder(blobId)
-                // Définit le "type de contenu" (ex: 'audio/mpeg', 'image/png') basé sur ce que le navigateur a envoyé.
                 .setContentType(file.getContentType())
-                // DÉFINIT LES PERMISSIONS : Rend le fichier lisible par TOUT LE MONDE sur internet ('ofAllUsers', 'READER').
-                // C'est ce qui permet d'avoir une URL simple et publique. Attention si tes fichiers sont privés !
-                .setAcl(new ArrayList<>(Arrays.asList(Acl.of(Acl.User.ofAllUsers(), Acl.Role.READER))))
-                // Termine la construction de l'objet BlobInfo.
                 .build();
 
-        // 'try-with-resources' : Ouvre un "flux" pour lire le contenu du fichier uploadé.
-        // Ce bloc garantit que le flux sera bien fermé à la fin, même en cas d'erreur.
         try (InputStream inputStream = file.getInputStream()) {
-            // C'est l'action principale : utilise l'outil 'storage' pour créer le fichier dans GCS.
-            // On lui donne les métadonnées (blobInfo) et le contenu du fichier (inputStream).
             storage.create(blobInfo, inputStream);
-            // 'catch (StorageException e)' : Si une erreur spécifique à Google Cloud Storage se produit pendant l'upload...
         } catch (StorageException e) {
-
             System.err.println("GCS Upload Error: " + e.getMessage());
             throw new IOException("Failed to upload file to GCS: " + e.getMessage(), e);
         }
 
-        // Si tout s'est bien passé, construit l'URL publique standard du fichier sur GCS.
-        // Elle combine le nom du bucket et le nom du fichier de destination.
         return String.format("https://storage.googleapis.com/%s/%s", bucketName, destinationFileName);
-        // (Commentaires sur les alternatives :
-        //   - gs://... : URL interne à GCS.
-        //   - URL signée : URL temporaire et sécurisée, plus complexe à générer.)
     }
 
 

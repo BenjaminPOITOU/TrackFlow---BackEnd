@@ -54,7 +54,7 @@ class UserServiceImplTest {
         registrationDtoMusician.setPassword("SecurePass123!"); // Doit faire >= 8 caractères
         registrationDtoMusician.setFirstName("Mia");
         registrationDtoMusician.setLastName("MusicianReg");
-        registrationDtoMusician.setUserRole(UserRole.ARTIST); // Rôle musicien
+        registrationDtoMusician.setUserRole(ProfileType.ARTIST); // Rôle musicien
         registrationDtoMusician.setAccountType(AccountType.MUSICIAN); // Type de compte musicien
 
         // 2. RegistrationDto pour créer un Listener (MANAGER)
@@ -63,7 +63,7 @@ class UserServiceImplTest {
         registrationDtoListener.setPassword("AnotherSecurePass456?"); // Doit faire >= 8 caractères
         registrationDtoListener.setFirstName("Leo");
         registrationDtoListener.setLastName("ListenerReg");
-        registrationDtoListener.setUserRole(UserRole.MANAGER); // Rôle listener
+        registrationDtoListener.setUserRole(ProfileType.MANAGER); // Rôle listener
         registrationDtoListener.setAccountType(AccountType.LISTENER); // Type de compte listener
 
         // 3. MusicianProfileUpdateDto pour Mettre à Jour un Musicien (partiel)
@@ -77,7 +77,7 @@ class UserServiceImplTest {
         // 4. ListenerProfileUpdateDto pour Mettre à Jour un Listener (partiel)
         listenerUpdateDto = new ListennerProfileUpdateDto();
         listenerUpdateDto.setLastName("ListenerReg-Updated"); // Mise à jour du nom de famille
-        listenerUpdateDto.setUserRole(UserRole.VISITOR);     // Mise à jour du rôle
+        listenerUpdateDto.setUserRole(ProfileType.VISITOR);     // Mise à jour du rôle
         // Le champ firstName reste null dans le DTO
 
 
@@ -91,7 +91,7 @@ class UserServiceImplTest {
         testMusician.setPassword("hashedPasswordMusician"); // En pratique, ce serait un hash
         testMusician.setFirstName("Pete");
         testMusician.setLastName("Producer");
-        testMusician.setUserRole(UserRole.PRODUCER);
+        testMusician.setUserRole(ProfileType.PRODUCER);
         testMusician.setAddress("1 Music Avenue");
         testMusician.setMobile("0101010101");
         testMusician.setBiography("Initial Producer Bio");
@@ -108,7 +108,7 @@ class UserServiceImplTest {
         testListener.setPassword("hashedPasswordListener"); // Hash
         testListener.setFirstName("Vicky");
         testListener.setLastName("Visitor");
-        testListener.setUserRole(UserRole.VISITOR);
+        testListener.setUserRole(ProfileType.VISITOR);
         testListener.setCreationDate(Instant.now().minus(Duration.ofDays(10))); // CORRIGÉ
         testListener.setUpdateDate(Instant.now().minus(Duration.ofDays(2)));
         testListener.setProjects(new ArrayList<>());

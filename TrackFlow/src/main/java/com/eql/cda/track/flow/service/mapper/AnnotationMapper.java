@@ -1,170 +1,116 @@
 package com.eql.cda.track.flow.service.mapper;
 
-import com.eql.cda.track.flow.dto.EnumDto;
 import com.eql.cda.track.flow.dto.annotationDto.AnnotationCreateDto;
-import com.eql.cda.track.flow.dto.annotationDto.AnnotationResponseDto;
 import com.eql.cda.track.flow.dto.annotationDto.AnnotationUpdateDto;
-import com.eql.cda.track.flow.dto.annotationDto.NewVersionAnnotationDto;
+import com.eql.cda.track.flow.dto.annotationDto.AnnotationViewDto;
 import com.eql.cda.track.flow.entity.Annotation;
 import com.eql.cda.track.flow.entity.AnnotationCategory;
 import com.eql.cda.track.flow.entity.AnnotationStatus;
 import com.eql.cda.track.flow.entity.Version;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-
-@Service
+/**
+ * A mapper component responsible for converting between Annotation entities and their corresponding DTOs.
+ */
+@Component
 public class AnnotationMapper {
 
-
+    /**
+     * Finds an AnnotationCategory by its label, ignoring case.
+     * @param label The label to search for (e.g., "Mixage").
+     * @return The matching AnnotationCategory enum constant.
+     * @throws IllegalArgumentException if no match is found.
+     */
+    private AnnotationCategory findCategoryByLabel(String label) {
+        return Arrays.stream(AnnotationCategory.values())
+                .filter(category -> category.getLabel().equalsIgnoreCase(label))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Invalid category label provided: " + label));
+    }
 
     /**
-     * Convertit un DTO de création d'annotation (pour une seule annotation) en une entité Annotation.
-     * L'entité créée est liée à la Version fournie mais n'est pas encore persistée.
-     * La date de création sera gérée par JPA (@PrePersist ou @CreatedDate).
-     *
-     * @param dto Le DTO contenant les données pour la nouvelle annotation.
-     * @param version L'entité Version existante à laquelle cette annotation doit être liée.
-     * @return Une nouvelle instance d'Annotation, prête à être persistée.
-     * @throws IllegalArgumentException si dto ou version est null.
+     * Finds an AnnotationStatus by its label, ignoring case.
+     * @param label The label to search for (e.g., "À traiter").
+     * @return The matching AnnotationStatus enum constant.
+     * @throws IllegalArgumentException if no match is found.
      */
-    public Annotation fromAnnotationCreateDto(AnnotationCreateDto dto, Version version) {
-        if (dto == null) {
-            throw new IllegalArgumentException("AnnotationCreateDto cannot be null for mapping.");
-        }
-        if (version == null) {
-            throw new IllegalArgumentException("Version cannot be null for mapping an annotation.");
-        }
+    private AnnotationStatus findStatusByLabel(String label) {
+        return Arrays.stream(AnnotationStatus.values())
+                .filter(status -> status.getLabel().equalsIgnoreCase(label))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Invalid status label provided: " + label));
+    }
 
+    /**
+     * Converts an {@link AnnotationCreateDto} to a new {@link Annotation} entity.
+     * It parses the string representations of category and status into their corresponding enum types.
+     *
+     * @param dto     the source DTO containing the data for the new annotation.
+     * @param version the parent Version entity to associate with the new annotation.
+     * @return a new {@link Annotation} instance, ready to be persisted.
+     */
+    public Annotation fromCreateDto(AnnotationCreateDto dto, Version version) {
         Annotation annotation = new Annotation();
-
-
         annotation.setVersion(version);
-
         annotation.setContent(dto.content());
         annotation.setTimePosition(dto.timePosition());
-        annotation.setAnnotationCategory(AnnotationCategory.fromLabel(dto.category()));
-        annotation.setAnnotationStatus(AnnotationStatus.fromLabel(dto.status()));
 
+        AnnotationCategory categoryEnum = findCategoryByLabel(dto.category());
+        AnnotationStatus statusEnum = findStatusByLabel(dto.status());
+
+        annotation.setAnnotationCategory(categoryEnum);
+        annotation.setAnnotationStatus(statusEnum);
+        annotation.setResolved(statusEnum == AnnotationStatus.RESOLUE);
 
         return annotation;
     }
 
-
-
-    public AnnotationResponseDto toAnnotationResponseDto(Annotation annotation) {
-        if (annotation == null) {
-            return null;
-        }
-        // Attention: Assurez-vous que les données sont chargées !
-        // Le service appelant doit garantir que l'entité 'annotation'
-        // a ses champs et relations nécessaires (version, category, status) initialisés
-        // pour éviter LazyInitializationException ici.
-
-        EnumDto categoryDto = new EnumDto(
-                annotation.getAnnotationCategory().name(),
-                annotation.getAnnotationCategory().getLabel() // Assumes getLabel() existe
-        );
-        EnumDto statusDto = new EnumDto(
-                annotation.getAnnotationStatus().name(),
-                annotation.getAnnotationStatus().getLabel() // Assumes getLabel() existe
-        );
-        boolean isResolved = annotation.getAnnotationStatus() == AnnotationStatus.RESOLUE;
-        // Gestion prudente de la relation pour l'ID de version
-        Long versionId = (annotation.getVersion() != null) ? annotation.getVersion().getId() : null;
-
-        return new AnnotationResponseDto(
-                annotation.getId(),
-                annotation.getContent(),
-                annotation.getTimePosition(),
-                annotation.getCreationDate(), // S'assurer qu'il est chargé si non null
-                isResolved,
-                categoryDto,
-                statusDto,
-                versionId
-        );
-    }
-
-    public List<AnnotationResponseDto> toAnnotationResponseDtoList(List<Annotation> annotations) {
-        if (annotations == null || annotations.isEmpty()) {
-            return Collections.emptyList();
-        }
-        return annotations.stream()
-                .map(this::toAnnotationResponseDto) // Appel de la méthode de la même classe
-                .collect(Collectors.toList());
-    }
-
-
     /**
-     * Crée une NOUVELLE entité Annotation (non persistée) à partir du DTO
-     * spécifiquement utilisé lors de la création de version.
+     * Updates an existing {@link Annotation} entity with data from an {@link AnnotationUpdateDto}.
+     * It parses string values from the DTO into enum types before updating the entity.
+     * Only non-null fields from the DTO will be applied to the entity.
      *
-     * @param dto      Le DTO contenant les données de l'annotation à créer.
-     * @param newVersion L'entité Version (la NOUVELLE version) à laquelle cette annotation sera associée.
-     * @return Une nouvelle instance d'Annotation, prête à être persistée (avec la Version liée).
+     * @param dto    the source DTO containing the update data.
+     * @param entity the target {@link Annotation} entity to update.
      */
-    public Annotation fromNewVersionAnnotationDto(NewVersionAnnotationDto dto, Version newVersion) {
-        if (dto == null || newVersion == null) {
-            // Lever une exception ou retourner null selon ta gestion d'erreur
-            throw new IllegalArgumentException("DTO or newVersion cannot be null for mapping");
-        }
-        Annotation ann = new Annotation();
-        ann.setVersion(newVersion); // Association cruciale à la NOUVELLE version
-        ann.setContent(dto.content());
-        ann.setTimePosition(dto.timePosition());
-        ann.setAnnotationCategory(dto.category());
-        ann.setAnnotationStatus(dto.status());
-
-        // Note: creationDate sera géré par @PrePersist ou @CreatedDate
-        // Note: supressionDate est null par défaut
-        // Note: sourceAnnotationId n'est pas mappé vers l'entité ici
-
-        return ann;
-    }
-
-
-    /**
-     * Mappe une liste de NewVersionAnnotationDto en une liste d'entités Annotation.
-     */
-    public List<Annotation> fromNewVersionAnnotationDtoList(List<NewVersionAnnotationDto> dtos, Version newVersion) {
-        if (dtos == null || dtos.isEmpty()) {
-            return Collections.emptyList();
-        }
-        if (newVersion == null) {
-            throw new IllegalArgumentException("New Version entity cannot be null for list mapping");
-        }
-        return dtos.stream()
-                .map(dto -> fromNewVersionAnnotationDto(dto, newVersion)) // Appelle la méthode pour chaque DTO
-                .collect(Collectors.toList());
-    }
-
-
-
-    public void updateAnnotationFromDto(AnnotationUpdateDto dto, Annotation entityToUpdate) {
-        if (dto == null || entityToUpdate == null) {
-            return; // Ou lever exception
-        }
-
-        // Met à jour seulement si la valeur est fournie dans le DTO (non-null)
+    public void updateFromDto(AnnotationUpdateDto dto, Annotation entity) {
         if (dto.content() != null) {
-            entityToUpdate.setContent(dto.content());
+            entity.setContent(dto.content());
         }
-        if (dto.timePosition() != null) { // Attention: comment gérer la mise à null explicite ? Parfois on envoie une valeur spéciale ou une structure différente pour PATCH. Pour l'instant, null = "ne pas changer". Si timePosition est dans le DTO mais null, cela signifierait "supprimer la timePosition"? A définir. On va supposer que null dans le DTO = "ne pas changer" pour l'instant.
-            entityToUpdate.setTimePosition(dto.timePosition());
-        }
+
         if (dto.category() != null) {
-            entityToUpdate.setAnnotationCategory(dto.category());
+            entity.setAnnotationCategory(findCategoryByLabel(dto.category()));
         }
+
         if (dto.status() != null) {
-            entityToUpdate.setAnnotationStatus(dto.status());
-            // Mettre à jour le champ 'isResolved' si tu l'as ajouté dans l'entité (pas recommandé, dériver est mieux)
-            // entityToUpdate.setResolved(dto.status() == AnnotationStatus.RESOLUE);
+            AnnotationStatus statusEnum = findStatusByLabel(dto.status());
+            entity.setAnnotationStatus(statusEnum);
+            entity.setResolved(statusEnum == AnnotationStatus.RESOLUE);
         }
-        // Les autres champs (id, version, creationDate) ne sont généralement pas modifiés par un PATCH standard.
     }
+    /**
+     * Converts an {@link Annotation} entity to a detailed {@link AnnotationViewDto}.
+     *
+     * @param entity the source {@link Annotation} entity.
+     * @return an {@link AnnotationViewDto} representing the entity.
+     */
+    public AnnotationViewDto toViewDto(Annotation entity) {
+        AnnotationViewDto dto = new AnnotationViewDto();
+        dto.setId(entity.getId());
+        dto.setContent(entity.getContent());
+        dto.setTimePosition(entity.getTimePosition());
+        dto.setResolved(entity.isResolved());
+        dto.setCreationDate(entity.getCreationDate());
+        dto.setAnnotationCategory(entity.getAnnotationCategory().getLabel());
+        dto.setAnnotationStatus(entity.getAnnotationStatus().getLabel());
+        return dto;
+    }
+
+
 
 
 }

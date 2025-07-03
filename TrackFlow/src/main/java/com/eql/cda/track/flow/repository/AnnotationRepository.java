@@ -1,39 +1,32 @@
 package com.eql.cda.track.flow.repository;
 
 import com.eql.cda.track.flow.entity.Annotation;
-import com.eql.cda.track.flow.entity.User;
-import com.eql.cda.track.flow.entity.Version;
-import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.repository.JpaRepository;
-
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
-
+/**
+ * Repository interface for {@link Annotation} entities.
+ * Provides standard database operations and custom queries for annotations.
+ */
 @Repository
-public interface AnnotationRepository extends JpaRepository <Annotation, Long> {
+public interface AnnotationRepository extends JpaRepository<Annotation, Long> {
 
-    List<Annotation> findByVersion(Version version);
-    List<Annotation> findByVersionId(Long versionId);
+    /**
+     * Finds all annotations associated with a specific version ID, ordered by their creation date in descending order.
+     * This ensures that the most recent annotations are returned first.
+     *
+     * @param versionId the ID of the {@link com.eql.cda.track.flow.entity.Version} to find annotations for.
+     * @return a list of {@link Annotation} entities, sorted by creation date descending.
+     */
+    List<Annotation> findAllByVersionIdOrderByCreationDateDesc(Long versionId);
 
-    @Query(value = "SELECT a FROM Annotation a " +
-            "LEFT JOIN FETCH a.version v " +
-            "LEFT JOIN FETCH v.branch b " +
-            "LEFT JOIN FETCH b.composition c " +
-            // --- CORRECTION : Ajout de la jointure vers Project ---
-            "JOIN c.project p " + // Jointure simple, pas besoin de FETCH project pour le DTO normalement
-            "WHERE p.user = :user", // Filtre sur l'utilisateur du PROJET
-            countQuery = "SELECT count(a) FROM Annotation a " +
-                    "JOIN a.version v " +
-                    "JOIN v.branch b " +
-                    "JOIN b.composition c " +
-                    // --- CORRECTION : Ajout de la jointure vers Project ---
-                    "JOIN c.project p " +
-                    "WHERE p.user = :user")
-    Page<Annotation> findRecentAnnotationsByUserWithDetails(User user, Pageable pageable);
-    List<Annotation> findByVersionIdOrderByCreationDateDesc(Long versionId);
-
+    /**
+     * Finds all annotations for a given version ID that are not marked as resolved.
+     *
+     * @param versionId the ID of the parent {@link com.eql.cda.track.flow.entity.Version}.
+     * @return a list of unresolved {@link Annotation} entities.
+     */
+    List<Annotation> findByVersionIdAndIsResolvedFalse(Long versionId);
 }

@@ -1,11 +1,11 @@
 package com.eql.cda.track.flow.entity;
 
-
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -13,6 +13,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * Represents a single musical composition within a project.
+ * A composition is the core creative unit, containing various branches and versions.
+ */
 @Entity
 @Table(name = "compositions")
 @EntityListeners(AuditingEntityListener.class)
@@ -28,57 +32,35 @@ public class Composition {
     private String illustration;
 
     @CreatedDate
+    @Column(updatable = false)
     private Instant createdDate;
+
     @LastModifiedDate
     private Instant lastUpdateDate;
 
     private Instant suppressionDate;
     private Instant definitivSupressionDate;
 
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(name = "composition_sub_genders", joinColumns = @JoinColumn(name = "composition_id"))
+    @Column(name = "sub_gender")
+    private List<String> subGenders = new ArrayList<>();
 
-    @ElementCollection(fetch = FetchType.LAZY) // LAZY est souvent préférable pour les collections
-    @CollectionTable(name = "composition_sub_genders", joinColumns = @JoinColumn(name = "composition_id")) // Table de jointure pour les sous-genres
-    @Column(name = "sub_gender") // Nom de la colonne dans la table de jointure
-    private List<String> subGenders = new ArrayList<>(); // Initialiser la liste
-
-
-    @ManyToOne(fetch = FetchType.LAZY) // LAZY est souvent préférable pour les relations ToOne
-    @JoinColumn(name = "project_id", nullable = false) // Une composition doit appartenir à un projet
-    @JsonBackReference
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id", nullable = false)
+    @JsonBackReference("project-composition")
     private Project project;
 
-    // Assurez-vous que l'entité 'Branch' existe, qu'elle est annotée @Entity
-    // et qu'elle a un champ 'private Composition composition;' annoté @ManyToOne
-    @OneToMany(mappedBy = "composition", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY) // cascade et orphanRemoval si besoin
-    private Set<Branch> branches = new HashSet<>(); // Initialiser le set
+    @OneToMany(mappedBy = "composition", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JsonManagedReference("composition-branch")
+    private Set<Branch> branches = new HashSet<>();;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "composition_status")
     private CompositionStatus compositionStatus;
 
-    // Constructeur par défaut requis par JPA
     public Composition() {
     }
-
-    // --- Constructeur mis à jour (sans les champs supprimés) ---
-    public Composition(Long id, String title, String description, Integer compositionOrder, String illustration, Instant createdDate, Instant lastUpdateDate, Instant suppressionDate, Instant definitivSupressionDate, List<String> subGenders, /* Supprimé */ /* Supprimé */ Project project, Set<Branch> branches, CompositionStatus compositionStatus) {
-        this.id = id;
-        this.title = title;
-        this.description = description;
-        this.compositionOrder = compositionOrder;
-        this.illustration = illustration;
-        this.createdDate = createdDate;
-        this.lastUpdateDate = lastUpdateDate;
-        this.suppressionDate = suppressionDate;
-        this.definitivSupressionDate = definitivSupressionDate;
-        this.subGenders = subGenders != null ? new ArrayList<>(subGenders) : new ArrayList<>(); // Copie défensive
-        this.project = project;
-        this.branches = branches != null ? new HashSet<>(branches) : new HashSet<>(); // Copie défensive
-        this.compositionStatus = compositionStatus;
-    }
-
-
-    // --- Getters and Setters (mis à jour, sans ceux des champs supprimés) ---
 
     public Long getId() {
         return id;
@@ -100,7 +82,6 @@ public class Composition {
     public void setDescription(String description) {
         this.description = description;
     }
-
 
     public Integer getCompositionOrder() {
         return compositionOrder;
@@ -145,15 +126,11 @@ public class Composition {
     }
 
     public List<String> getSubGenders() {
-        // Retourner une copie pour éviter les modifications externes non désirées si nécessaire
-        return subGenders; // Ou return new ArrayList<>(subGenders);
+        return subGenders;
     }
     public void setSubGenders(List<String> subGenders) {
-        // Copie défensive lors du set
-        this.subGenders = subGenders != null ? new ArrayList<>(subGenders) : new ArrayList<>();
+        this.subGenders = subGenders;
     }
-
-    // --- Getters/Setters pour projectMusicalGender et projectMusicalGenderAdded sont SUPPRIMÉS ---
 
     public Project getProject() {
         return project;
@@ -163,12 +140,10 @@ public class Composition {
     }
 
     public Set<Branch> getBranches() {
-        // Retourner une copie pour éviter les modifications externes non désirées si nécessaire
-        return branches; // Ou return new HashSet<>(branches);
+        return branches;
     }
     public void setBranches(Set<Branch> branches) {
-        // Copie défensive lors du set
-        this.branches = branches != null ? new HashSet<>(branches) : new HashSet<>();
+        this.branches = branches;
     }
 
     public CompositionStatus getCompositionStatus() {
@@ -178,4 +153,3 @@ public class Composition {
         this.compositionStatus = compositionStatus;
     }
 }
-

@@ -1,5 +1,7 @@
 package com.eql.cda.track.flow.dto.compositionDto;
 
+import com.eql.cda.track.flow.dto.branchDto.BranchSummaryDto;
+import com.eql.cda.track.flow.entity.Composition;
 import com.eql.cda.track.flow.entity.CompositionStatus;
 import com.eql.cda.track.flow.entity.ProjectMusicalGenderPreDefined;
 
@@ -7,6 +9,11 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * A Data Transfer Object that provides a detailed, read-only representation of a
+ * {@link Composition}.
+ * It is designed to be sent to the client for display on a composition's detail page.
+ */
 public class CompositionViewDto {
 
     private Long id;
@@ -15,6 +22,7 @@ public class CompositionViewDto {
     private String projectTitle;
     private CompositionStatus compositionStatus;
     private Integer totalBranches;
+    private List<BranchSummaryDto> branches;
     private Integer totalVersions;
     private Instant createdDate;
     private Instant lastUpdateDate;
@@ -23,23 +31,10 @@ public class CompositionViewDto {
     private String description;
     private String illustration;
 
-
+    /**
+     * Default constructor required for framework instantiation.
+     */
     public CompositionViewDto() {
-    }
-    public CompositionViewDto(Long id, Long projectId, String title, String projectTitle, CompositionStatus compositionStatus, Integer totalBranches, Integer totalVersions, Instant createdDate, Instant lastUpdateDate, List<String> subGenders, Set<ProjectMusicalGenderPreDefined> projectMusicalGenderPreDefinedList, String description, String illustration) {
-        this.id = id;
-        this.projectId = projectId;
-        this.title = title;
-        this.projectTitle = projectTitle;
-        this.compositionStatus = compositionStatus;
-        this.totalBranches = totalBranches;
-        this.totalVersions = totalVersions;
-        this.createdDate = createdDate;
-        this.lastUpdateDate = lastUpdateDate;
-        this.subGenders = subGenders;
-        this.projectMusicalGenderPreDefinedList = projectMusicalGenderPreDefinedList;
-        this.description = description;
-        this.illustration = illustration;
     }
 
     public Long getId() {
@@ -84,6 +79,13 @@ public class CompositionViewDto {
         this.totalBranches = totalBranches;
     }
 
+    public List<BranchSummaryDto> getBranches() {
+        return branches;
+    }
+    public void setBranches(List<BranchSummaryDto> branches) {
+        this.branches = branches;
+    }
+
     public Integer getTotalVersions() {
         return totalVersions;
     }
@@ -111,7 +113,6 @@ public class CompositionViewDto {
     public void setSubGenders(List<String> subGenders) {
         this.subGenders = subGenders;
     }
-
 
     public Set<ProjectMusicalGenderPreDefined> getProjectMusicalGenderPreDefinedList() {
         return projectMusicalGenderPreDefinedList;

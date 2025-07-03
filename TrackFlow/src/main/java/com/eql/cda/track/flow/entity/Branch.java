@@ -4,6 +4,7 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -14,10 +15,18 @@ import jakarta.persistence.Table;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * Represents a branch of development within a musical composition.
+ * A branch is a distinct line of work, which can have its own parent branch and contain multiple versions.
+ * It is always associated with a single parent {@link Composition}.
+ */
 @Entity
 @Table(name = "branches")
 @EntityListeners(AuditingEntityListener.class)
@@ -30,37 +39,38 @@ public class Branch {
     private String description;
 
     @CreatedDate
+    @Column(updatable = false)
     private Instant createdDate;
-    private Instant  supressionDate;
-    private Instant  definitivSupressionDate;
 
-    @Column(name = "last_update_date")
     @LastModifiedDate
     private Instant lastUpdateDate;
-    private Long branchParentId;
 
-    @ManyToOne
-    @JoinColumn(name = "composition_id")
+    private Instant supressionDate;
+    private Instant definitivSupressionDate;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_branch_id")
+    @JsonBackReference("branch-children")
+    private Branch parent;
+
+    @OneToMany(mappedBy = "parent")
+    @JsonManagedReference("branch-children")
+    private Set<Branch> children = new HashSet<>();
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "composition_id", nullable = false)
+    @JsonBackReference("composition-branch")
     private Composition composition;
 
-    @OneToMany(mappedBy = "branch", cascade = CascadeType.ALL)
-    private Set<Version> versions;
+    @OneToMany(mappedBy = "branch", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference("branch-version")
+    private Set<Version> versions = new HashSet<>();
 
+    /**
+     * Default constructor required by the persistence framework (JPA).
+     */
     public Branch() {
     }
-    public Branch(Long id, String name, String description, Instant createdDate, Instant supressionDate, Instant  definitivSupressionDate, Instant lastUpdateDate, Long branchParentId, Composition composition, Set<Version> versions) {
-        this.id = id;
-        this.name = name;
-        this.description = description;
-        this.createdDate = createdDate;
-        this.supressionDate = supressionDate;
-        this.definitivSupressionDate = definitivSupressionDate;
-        this.lastUpdateDate = lastUpdateDate;
-        this.branchParentId = branchParentId;
-        this.composition = composition;
-        this.versions = versions;
-    }
-
 
     public Long getId() {
         return id;
@@ -111,11 +121,18 @@ public class Branch {
         this.lastUpdateDate = lastUpdateDate;
     }
 
-    public Long getBranchParentId() {
-        return branchParentId;
+    public Branch getParent() {
+        return parent;
     }
-    public void setBranchParentId(Long branchParentId) {
-        this.branchParentId = branchParentId;
+    public void setParent(Branch parent) {
+        this.parent = parent;
+    }
+
+    public Set<Branch> getChildren() {
+        return children;
+    }
+    public void setChildren(Set<Branch> children) {
+        this.children = children;
     }
 
     public Composition getComposition() {

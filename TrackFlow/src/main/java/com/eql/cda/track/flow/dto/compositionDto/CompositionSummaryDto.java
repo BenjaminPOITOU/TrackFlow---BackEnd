@@ -1,6 +1,8 @@
 package com.eql.cda.track.flow.dto.compositionDto;
 
 
+import com.eql.cda.track.flow.dto.EnumDto;
+
 import java.time.Instant;
 import java.util.List;
 
@@ -10,19 +12,19 @@ public class CompositionSummaryDto {
     private String title;
     private Integer totalBranches;
     private Integer totalVersions;
-    private List<String> subGenders;
     private Instant lastUpdateDate;
+    private EnumDto status;
 
     public CompositionSummaryDto() {
     }
 
-    public CompositionSummaryDto(Long id, String title, Integer totalBranches, Integer totalVersions, List<String> subGenders, Instant lastUpdateDate) {
+    public CompositionSummaryDto(Long id, String title, Integer totalBranches, Integer totalVersions, Instant lastUpdateDate, EnumDto status) {
         this.id = id;
         this.title = title;
         this.totalBranches = totalBranches;
         this.totalVersions = totalVersions;
-        this.subGenders = subGenders;
         this.lastUpdateDate = lastUpdateDate;
+        this.status = status;
     }
 
     public Long getId() {
@@ -46,11 +48,11 @@ public class CompositionSummaryDto {
         this.totalBranches = totalBranches;
     }
 
-    public List<String> getSubGenders() {
-        return subGenders;
+    public EnumDto getStatus() {
+        return status;
     }
-    public void setSubGenders(List<String> subGenders) {
-        this.subGenders = subGenders;
+    public void setStatus(EnumDto status) {
+        this.status = status;
     }
 
     public Instant getLastUpdateDate() {

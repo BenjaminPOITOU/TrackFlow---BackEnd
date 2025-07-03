@@ -1,6 +1,6 @@
 package com.eql.cda.track.flow.dto.userDto;
 
-import com.eql.cda.track.flow.entity.UserRole;
+import com.eql.cda.track.flow.entity.ProfileType;
 
 public class AuthenticatedUserDto {
 
@@ -8,11 +8,11 @@ public class AuthenticatedUserDto {
     private String email;
     private String firstName;
     private String lastName;
-    private UserRole userRole;
+    private ProfileType userRole;
     private String token;
 
     // Constructeur
-    public AuthenticatedUserDto(Long id, String email, String firstName, String lastName, UserRole userRole, String token) {
+    public AuthenticatedUserDto(Long id, String email, String firstName, String lastName, ProfileType userRole, String token) {
         this.id = id;
         this.email = email;
         this.firstName = firstName;
@@ -38,7 +38,7 @@ public class AuthenticatedUserDto {
         return lastName;
     }
 
-    public UserRole getUserRole() {
+    public ProfileType getUserRole() {
         return userRole;
     }
 
@@ -63,7 +63,7 @@ public class AuthenticatedUserDto {
         this.lastName = lastName;
     }
 
-    public void setUserRole(UserRole userRole) {
+    public void setUserRole(ProfileType userRole) {
         this.userRole = userRole;
     }
 

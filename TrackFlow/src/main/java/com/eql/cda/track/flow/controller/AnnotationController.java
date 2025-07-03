@@ -1,209 +1,100 @@
 package com.eql.cda.track.flow.controller;
 
-
-
-
 import com.eql.cda.track.flow.dto.annotationDto.AnnotationCreateDto;
-import com.eql.cda.track.flow.dto.annotationDto.AnnotationResponseDto;
 import com.eql.cda.track.flow.dto.annotationDto.AnnotationUpdateDto;
-import com.eql.cda.track.flow.dto.annotationDto.UserRecentAnnotationDto;
+import com.eql.cda.track.flow.dto.annotationDto.AnnotationViewDto;
 import com.eql.cda.track.flow.service.AnnotationService;
 import jakarta.validation.Valid;
-import jakarta.persistence.EntityNotFoundException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-
-// TODO: Ajouter la sécurité (@PreAuthorize) pour vérifier que l'utilisateur a le droit d'agir sur ces annotations (via la Version/Composition/Projet)
-
+/**
+ * REST controller for managing annotations within the API hierarchy.
+ */
 @RestController
-@RequestMapping("/api") // Base commune
 @CrossOrigin(origins = "http://localhost:3000")
+@RequestMapping("/api/")
 public class AnnotationController {
-
-    private static final Logger logger = LoggerFactory.getLogger(AnnotationController.class);
 
     private final AnnotationService annotationService;
 
+    /**
+     * Constructs an AnnotationController with the required AnnotationService.
+     *
+     * @param annotationService the service to handle business logic for annotations.
+     */
     @Autowired
     public AnnotationController(AnnotationService annotationService) {
         this.annotationService = annotationService;
     }
 
     /**
-     * Crée une nouvelle annotation associée à une version spécifique.
-     * L'ID de la version est passé dans l'URL.
+     * Creates a new annotation associated with a specific version.
      *
-     * @param versionId L'ID de la version parente.
-     * @param createDto Le DTO contenant les détails de l'annotation à créer.
-     * @return ResponseEntity contenant l'AnnotationResponseDto créé (201) ou un statut d'erreur.
+     * @param versionId the ID of the parent version.
+     * @param createDto the DTO containing the data for the new annotation.
+     * @return a ResponseEntity with the created annotation view and HTTP status 201 (Created).
+     * @throws com.eql.cda.track.flow.exception.ResourceNotFoundException if the parent version does not exist.
      */
     @PostMapping("/versions/{versionId}/annotations")
-    public ResponseEntity<?> createAnnotation(@PathVariable Long versionId,
-                                              @Valid @RequestBody AnnotationCreateDto createDto) {
-        logger.info("POST /api/versions/{}/annotations - Request to create annotation.", versionId);
-        logger.debug("Request body: {}", createDto);
-        try {
-            // Le service gère la liaison avec la versionId
-            AnnotationResponseDto createdAnnotation = annotationService.createAnnotation(createDto, versionId);
-            logger.info("Annotation created with ID: {} for version {}", createdAnnotation.id(), versionId);
-
-            // Retourner 201 Created avec le corps
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdAnnotation);
-
-        } catch (EntityNotFoundException e) {
-            // Si la version parente n'est pas trouvée
-            logger.warn("Annotation creation failed: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage()); // 404
-        } catch (IllegalArgumentException e) {
-            // Erreur de validation métier potentielle du service
-            logger.warn("Annotation creation failed: Invalid argument - {}", e.getMessage());
-            return ResponseEntity.badRequest().body(e.getMessage()); // 400
-        }
-        // TODO: Gérer les erreurs de validation de @Valid plus proprement avec BindingResult ou @ControllerAdvice
-        catch (Exception e) {
-            logger.error("Annotation creation failed for version {}: Unexpected error - {}", versionId, e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred creating the annotation.");
-        }
-    }
-    @GetMapping("/annotations/recent")
-    public ResponseEntity<Page<UserRecentAnnotationDto>> getMyRecentAnnotations(
-
-            @RequestParam String username,
-            @PageableDefault(size = 15, sort = "creationDate", direction = Sort.Direction.DESC) Pageable pageable) {
-
-        // Le 'username' vient maintenant du paramètre @RequestParam
-        logger.info("GET /api/annotations/recent - Request for user '{}' (from request param), pageable: {}", username, pageable);
-
-        try {
-            // --- Appel du service avec le username du paramètre ---
-            Page<UserRecentAnnotationDto> recentAnnotations = annotationService.findRecentAnnotationsForUser(username, pageable);
-            return ResponseEntity.ok(recentAnnotations);
-
-        } catch (UsernameNotFoundException e) {
-            // Le service peut toujours lever cette exception si le username fourni n'existe pas en BDD
-            logger.warn("User not found for username provided in parameter: '{}'", username);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build(); // 404 est plus logique ici
-        } catch (Exception e) {
-            logger.error("Error retrieving recent annotations for user '{}': {}", username, e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
-
-
-    /**
-     * Récupère une annotation spécifique par son ID.
-     *
-     * @param annotationId L'ID de l'annotation à récupérer.
-     * @return ResponseEntity contenant l'AnnotationResponseDto (200) ou 404.
-     */
-    @GetMapping("/annotations/{annotationId}")
-    public ResponseEntity<AnnotationResponseDto> getAnnotationById(@PathVariable Long annotationId) {
-        logger.info("GET /api/annotations/{} - Request to retrieve annotation.", annotationId);
-        try {
-            AnnotationResponseDto annotationDto = annotationService.getAnnotationById(annotationId);
-            return ResponseEntity.ok(annotationDto);
-        } catch (EntityNotFoundException e) {
-            logger.warn("Annotation {} not found.", annotationId);
-            return ResponseEntity.notFound().build(); // 404
-        } catch (Exception e) {
-            logger.error("Error retrieving annotation {}: {}", annotationId, e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // 500
-        }
+    public ResponseEntity<AnnotationViewDto> createAnnotation(
+            @PathVariable Long versionId,
+            @Valid @RequestBody AnnotationCreateDto createDto) {
+        AnnotationViewDto createdAnnotation = annotationService.createAnnotation(versionId, createDto);
+        return new ResponseEntity<>(createdAnnotation, HttpStatus.CREATED);
     }
 
     /**
-     * Récupère toutes les annotations associées à une version spécifique.
+     * Retrieves all annotations for a specific version.
      *
-     * @param versionId L'ID de la version dont on veut les annotations.
-     * @return ResponseEntity contenant la liste des AnnotationResponseDto (200) ou une liste vide/erreur.
+     * @param versionId the ID of the parent version.
+     * @return a ResponseEntity with a list of annotation summaries and HTTP status 200 (OK).
+     * @throws com.eql.cda.track.flow.exception.ResourceNotFoundException if the parent version does not exist.
      */
     @GetMapping("/versions/{versionId}/annotations")
-    public ResponseEntity<List<AnnotationResponseDto>> getAllAnnotationsByVersionId(
-            @PathVariable Long versionId) {
-        logger.info("GET /api/versions/{}/annotations - Request to list ALL annotations", versionId);
-        try {
-            // --- MODIFICATION : Appel à une nouvelle méthode de service ---
-            // On garde un tri implicite (par date de création desc) pour la cohérence
-            List<AnnotationResponseDto> annotations = annotationService.getAllAnnotationsByVersionIdSorted(versionId);
-            // --- FIN MODIFICATION ---
-
-            return ResponseEntity.ok(annotations);
-
-        } catch (EntityNotFoundException e) { // Si le service lève ça quand la version n'existe pas
-            logger.warn("Cannot list annotations: Version {} not found.", versionId);
-            return ResponseEntity.notFound().build();
-        } catch (Exception e) {
-            logger.error("Error retrieving all annotations for version {}: {}", versionId, e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+    public ResponseEntity<List<AnnotationViewDto>> getAnnotationsForVersion(@PathVariable Long versionId) {
+        List<AnnotationViewDto> annotations = annotationService.findAllAnnotationsByVersionId(versionId);
+        return ResponseEntity.ok(annotations);
     }
 
-
-
     /**
-     * Met à jour une annotation existante.
-     * Utilise PATCH pour les mises à jour partielles (champs null dans le DTO sont ignorés).
+     * Updates an existing annotation.
      *
-     * @param annotationId L'ID de l'annotation à mettre à jour.
-     * @param updateDto Le DTO contenant les champs à modifier.
-     * @return ResponseEntity contenant l'AnnotationResponseDto mise à jour (200) ou un statut d'erreur.
+     * @param annotationId the ID of the annotation to update.
+     * @param updateDto    the DTO containing the fields to update.
+     * @return a ResponseEntity with the updated annotation view and HTTP status 200 (OK).
+     * @throws com.eql.cda.track.flow.exception.ResourceNotFoundException if the annotation does not exist.
      */
     @PatchMapping("/annotations/{annotationId}")
-    public ResponseEntity<?> updateAnnotation(@PathVariable Long annotationId,
-                                              @Valid @RequestBody AnnotationUpdateDto updateDto) {
-        logger.info("PATCH /api/annotations/{} - Request to update annotation.", annotationId);
-        logger.debug("Request body: {}", updateDto); // Peut être null ou partiel
-        try {
-            AnnotationResponseDto updatedAnnotation = annotationService.updateAnnotation(annotationId, updateDto);
-            logger.info("Annotation {} updated successfully.", annotationId);
-            return ResponseEntity.ok(updatedAnnotation);
-        } catch (EntityNotFoundException e) {
-            logger.warn("Annotation update failed: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage()); // 404
-        } catch (IllegalArgumentException e) {
-            logger.warn("Annotation update failed: Invalid argument - {}", e.getMessage());
-            return ResponseEntity.badRequest().body(e.getMessage()); // 400
-        }
-        // TODO: Gérer validation @Valid
-        catch (Exception e) {
-            logger.error("Annotation update failed for ID {}: Unexpected error - {}", annotationId, e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred updating the annotation."); // 500
-        }
+    public ResponseEntity<AnnotationViewDto> updateAnnotation(
+            @PathVariable Long annotationId,
+            @Valid @RequestBody AnnotationUpdateDto updateDto) {
+        AnnotationViewDto updatedAnnotation = annotationService.updateAnnotation(annotationId, updateDto);
+        return ResponseEntity.ok(updatedAnnotation);
     }
 
     /**
-     * Supprime (soft delete) une annotation spécifique par son ID.
+     * Deletes an annotation. This is a soft delete.
      *
-     * @param annotationId L'ID de l'annotation à supprimer.
-     * @return ResponseEntity avec statut 204 (No Content) ou un statut d'erreur.
+     * @param annotationId the ID of the annotation to delete.
+     * @return a ResponseEntity with HTTP status 204 (No Content).
+     * @throws com.eql.cda.track.flow.exception.ResourceNotFoundException if the annotation does not exist.
      */
     @DeleteMapping("/annotations/{annotationId}")
     public ResponseEntity<Void> deleteAnnotation(@PathVariable Long annotationId) {
-        logger.info("DELETE /api/annotations/{} - Request to delete annotation.", annotationId);
-        try {
-            annotationService.deleteAnnotation(annotationId);
-            logger.info("Annotation {} marked for deletion successfully.", annotationId);
-            return ResponseEntity.noContent().build(); // 204
-        } catch (EntityNotFoundException e) {
-            logger.warn("Annotation deletion failed: {}", e.getMessage());
-            return ResponseEntity.notFound().build(); // 404
-        } catch (Exception e) {
-            logger.error("Annotation deletion failed for ID {}: Unexpected error - {}", annotationId, e.getMessage(), e);
-            // Ne pas retourner de corps pour une erreur sur DELETE idéalement, juste le statut
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // 500
-        }
+        annotationService.deleteAnnotation(annotationId);
+        return ResponseEntity.noContent().build();
     }
 }

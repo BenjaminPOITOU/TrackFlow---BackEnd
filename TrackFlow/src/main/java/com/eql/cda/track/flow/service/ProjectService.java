@@ -4,103 +4,89 @@ import com.eql.cda.track.flow.dto.projectDto.ProjectCreateDto;
 import com.eql.cda.track.flow.dto.projectDto.ProjectSummaryDto;
 import com.eql.cda.track.flow.dto.projectDto.ProjectUpdateDto;
 import com.eql.cda.track.flow.dto.projectDto.ProjectViewDto;
-import jakarta.persistence.EntityNotFoundException; // Import standard pour cette exception
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.access.AccessDeniedException; // Import si vous lancez cette exception pour les droits
+import org.springframework.security.access.AccessDeniedException;
 
 /**
- * Service gérant la logique métier liée aux projets.
- * Les méthodes qui modifient ou accèdent à des données spécifiques à un utilisateur
- * devraient idéalement inclure l'ID de l'utilisateur pour les vérifications de permission.
+ * Service interface for business logic related to projects.
+ * Methods that modify or access user-specific data must include checks
+ * to ensure the authenticated user has the appropriate permissions.
  */
 public interface ProjectService {
 
     /**
-     * Crée un nouveau projet pour l'utilisateur spécifié.
-     * Vérifie que l'utilisateur créateur existe.
+     * Creates a new project for a specified user.
      *
-     * @param userId           L'ID de l'utilisateur qui crée le projet.
-     * @param projectCreateDto Les données du projet à créer.
-     * @return Le DTO du projet nouvellement créé.
-     * @throws EntityNotFoundException Si l'utilisateur avec l'ID fourni n'existe pas.
-     * @throws IllegalArgumentException Si les données du DTO sont invalides (ex: titre manquant).
+     * @param userId The ID of the user creating the project.
+     * @param projectCreateDto The data for the new project.
+     * @return A DTO representing the newly created project.
+     * @throws EntityNotFoundException if the user with the given ID does not exist.
      */
-    ProjectCreateDto createProject(Long userId, ProjectCreateDto projectCreateDto);
+    ProjectViewDto createProject(Long userId, ProjectCreateDto projectCreateDto);
 
     /**
-     * Récupère les informations d'un projet spécifique par son ID, en vérifiant les droits de l'utilisateur.
+     * Retrieves a specific project by its ID, ensuring the requesting user has access.
      *
-     * @param projectId L'ID du projet à récupérer.
-     * @param userId    L'ID de l'utilisateur effectuant la requête (pour la vérification des permissions).
-     * @return Le DTO de vue du projet.
-     * @throws EntityNotFoundException Si le projet ou l'utilisateur n'existe pas.
-     * @throws AccessDeniedException   Si l'utilisateur spécifié n'a pas accès à ce projet.
+     * @param projectId The ID of the project to retrieve.
+     * @param userId The ID of the user making the request, used for permission checks.
+     * @return A DTO view of the project.
+     * @throws EntityNotFoundException if the project does not exist.
+     * @throws AccessDeniedException if the specified user does not have access to the project.
      */
     ProjectViewDto getProjectByIdAndUser(Long projectId, Long userId);
 
     /**
-     * Récupère une page de tous les projets visibles pour un utilisateur spécifié.
-     * (Typiquement, les projets créés par cet utilisateur).
+     * Retrieves a paginated list of all projects visible to a specified user.
      *
-     * @param userId    L'ID de l'utilisateur dont on veut les projets.
-     * @param pageable  Les informations de pagination et de tri.
-     * @return Une page contenant les DTOs de vue des projets.
-     * @throws EntityNotFoundException Si l'utilisateur spécifié n'existe pas.
+     * @param userId The ID of the user whose projects are being requested.
+     * @param pageable Pagination and sorting information.
+     * @return A Page containing project view DTOs.
+     * @throws EntityNotFoundException if the user does not exist.
      */
     Page<ProjectViewDto> getAllProjectsPaginated(Long userId, Pageable pageable);
 
     /**
-     * Récupère une page des projets récents pour un utilisateur (identifié par son login/username).
-     * Note: Utiliser l'ID utilisateur serait plus cohérent si disponible partout.
+     * Retrieves a paginated list of recent projects for the currently authenticated user.
+     * The user is identified via the security context.
      *
-     * @param username Le nom d'utilisateur (login).
-     * @param pageable Les informations de pagination et de tri.
-     * @return Une page contenant les DTOs résumés des projets récents.
-     * @throws org.springframework.security.core.userdetails.UsernameNotFoundException Si aucun utilisateur ne correspond au login fourni.
+     * @param pageable Pagination and sorting information.
+     * @return A Page containing summary DTOs of recent projects.
+     * @throws org.springframework.security.core.AuthenticationException if no user is authenticated.
      */
-    Page<ProjectSummaryDto> findRecentProjectsForUser(String username, Pageable pageable);
+    Page<ProjectSummaryDto> findRecentProjectsForCurrentUser(Pageable pageable);
 
     /**
-     * Met à jour un projet existant après vérification des permissions de l'utilisateur.
+     * Updates an existing project after verifying user permissions.
      *
-     * @param projectId        L'ID du projet à mettre à jour.
-     * @param userId           L'ID de l'utilisateur effectuant la requête (pour la vérification des permissions).
-     * @param projectUpdateDto Les données de mise à jour.
-     * @throws EntityNotFoundException Si le projet ou l'utilisateur n'existe pas.
-     * @throws AccessDeniedException   Si l'utilisateur n'a pas le droit de modifier ce projet.
-     * @throws IllegalArgumentException Si les données de mise à jour sont invalides.
+     * @param projectId The ID of the project to update.
+     * @param userId The ID of the user making the request.
+     * @param projectUpdateDto The data to update.
+     * @throws EntityNotFoundException if the project does not exist.
+     * @throws AccessDeniedException if the user is not allowed to modify this project.
      */
     void updateProjectForUser(Long projectId, Long userId, ProjectUpdateDto projectUpdateDto);
 
     /**
-     * Archive un projet spécifié après vérification des permissions de l'utilisateur.
-     * L'archivage est généralement une opération logique (mise à jour d'un statut).
+     * Archives a project after verifying user permissions.
+     * Archiving is a logical operation, typically setting a status.
      *
-     * @param projectId L'ID du projet à archiver.
-     * @param userId    L'ID de l'utilisateur effectuant la requête (pour la vérification des permissions).
-     * @throws EntityNotFoundException Si le projet ou l'utilisateur n'existe pas.
-     * @throws AccessDeniedException   Si l'utilisateur n'a pas le droit d'archiver ce projet.
-     * @throws IllegalStateException   Si le projet est déjà dans un état qui empêche l'archivage (ex: déjà archivé).
+     * @param projectId The ID of the project to archive.
+     * @param userId The ID of the user making the request.
+     * @throws EntityNotFoundException if the project does not exist.
+     * @throws AccessDeniedException if the user is not allowed to archive this project.
+     * @throws IllegalStateException if the project cannot be archived (e.g., already archived).
      */
     void archiveProjectForUser(Long projectId, Long userId);
 
     /**
-     * Supprime un projet spécifié de manière permanente après vérification des permissions de l'utilisateur.
+     * Permanently deletes a project after verifying user permissions.
      *
-     * @param projectId L'ID du projet à supprimer.
-     * @param userId    L'ID de l'utilisateur effectuant la requête (pour la vérification des permissions).
-     * @throws EntityNotFoundException Si le projet ou l'utilisateur n'existe pas.
-     * @throws AccessDeniedException   Si l'utilisateur n'a pas le droit de supprimer ce projet.
+     * @param projectId The ID of the project to delete.
+     * @param userId The ID of the user making the request.
+     * @throws EntityNotFoundException if the project does not exist.
+     * @throws AccessDeniedException if the user is not allowed to delete this project.
      */
     void deleteProjectForUser(Long projectId, Long userId);
-
-    // --- Méthode Originale Renommée/Obsolète ---
-    // Cette méthode n'est plus utilisée directement par le contrôleur tel que modifié,
-    // car elle ne prend pas userId pour la vérification des droits.
-    // Gardez-la si elle est utilisée ailleurs, sinon envisagez de la supprimer/adapter.
-    // Si vous la gardez, assurez-vous que l'implémentation vérifie les droits
-    // via SecurityContextHolder si userId n'est pas passé.
-    // ProjectViewDto getCurrentProjectInfo(Long id);
-
 }

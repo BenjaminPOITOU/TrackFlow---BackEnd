@@ -9,13 +9,16 @@ import com.eql.cda.track.flow.entity.ProjectMusicalGenderPreDefined;
 import com.eql.cda.track.flow.entity.ProjectPurpose;
 import com.eql.cda.track.flow.entity.ProjectStatus;
 import com.eql.cda.track.flow.entity.ProjectType;
+import com.eql.cda.track.flow.entity.VersionInstrumentPreDefined;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -40,29 +43,29 @@ public class EnumController {
                 .collect(Collectors.toList());
     }
 
-    @GetMapping("/project-statuses")
-    public List<EnumDto> getProjectStatuses() {
-        return enumToDtoList(ProjectStatus.class);
-    }
+    /**
+     * Point de terminaison unique pour récupérer toutes les énumérations
+     * liées aux projets.
+     *
+     * @return Une Map contenant toutes les listes d'enums nécessaires pour le formulaire de création de projet.
+     */
+    /**
+     * Point de terminaison unique pour récupérer toutes les énumérations
+     * liées aux projets.
+     *
+     * @return Une Map contenant toutes les listes d'enums nécessaires pour le formulaire de création de projet.
+     */
+    @GetMapping("/projects/enums")
+    public Map<String, List<EnumDto>> getAllProjectEnums() {
+        Map<String, List<EnumDto>> allEnums = new HashMap<>();
 
-    @GetMapping("/project-purposes")
-    public List<EnumDto> getProjectPurposes() {
-        return enumToDtoList(ProjectPurpose.class);
-    }
+        allEnums.put("types", enumToDtoList(ProjectType.class));
+        allEnums.put("commercialStatuses", enumToDtoList(ProjectCommercialStatus.class));
+        allEnums.put("musicalGenders", enumToDtoList(ProjectMusicalGenderPreDefined.class));
+        allEnums.put("purposes", enumToDtoList(ProjectPurpose.class));
+        allEnums.put("statuses", enumToDtoList(ProjectStatus.class)); // Corresponds à project-statuses dans votre JS
 
-    @GetMapping("/project-types")
-    public List<EnumDto> getProjectTypes() {
-        return enumToDtoList(ProjectType.class);
-    }
-
-    @GetMapping("/project-musical-genders")
-    public List<EnumDto> getProjectMusicalGenders() {
-        return enumToDtoList(ProjectMusicalGenderPreDefined.class);
-    }
-
-    @GetMapping("/project-commercial-statuses")
-    public List<EnumDto> getProjectCommercialStatuses() {
-        return enumToDtoList(ProjectCommercialStatus.class);
+        return allEnums;
     }
 
     @GetMapping("/composition-statuses")
@@ -78,6 +81,15 @@ public class EnumController {
     @GetMapping("/annotation-statuses")
     public List<EnumDto> getAnnotationStatuses() {
         return enumToDtoList(AnnotationStatus.class);
+    }
+
+    /**
+     * Retrieves all predefined instruments available for a version.
+     * @return A list of all instrument enums.
+     */
+    @GetMapping("/instruments")
+    public List<EnumDto> getVersionInstruments() {
+        return enumToDtoList(VersionInstrumentPreDefined.class);
     }
 
 }

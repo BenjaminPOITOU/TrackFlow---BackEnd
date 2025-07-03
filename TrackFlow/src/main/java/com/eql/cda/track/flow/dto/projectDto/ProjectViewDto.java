@@ -5,10 +5,12 @@ import com.eql.cda.track.flow.entity.ProjectMusicalGenderPreDefined;
 import com.eql.cda.track.flow.entity.ProjectPurpose;
 import com.eql.cda.track.flow.entity.ProjectStatus;
 import com.eql.cda.track.flow.entity.ProjectType;
-
 import java.time.Instant;
 import java.util.Set;
 
+/**
+ * DTO for a detailed view of a single project.
+ */
 public class ProjectViewDto {
 
     private Long id;
@@ -24,31 +26,12 @@ public class ProjectViewDto {
     private Instant updateDate;
     private Integer compositionsTotal;
 
-
-
     public ProjectViewDto() {
     }
-
-    public ProjectViewDto(Long id, String title, String description, String illustration, ProjectStatus projectStatus, ProjectType projectType, ProjectCommercialStatus projectCommercialStatus, Set<ProjectPurpose> projectPurposes, Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined, Instant createdDate, Instant updateDate, Integer compositionsTotal) {
-        this.id = id;
-        this.title = title;
-        this.description = description;
-        this.illustration = illustration;
-        this.projectStatus = projectStatus;
-        this.projectType = projectType;
-        this.projectCommercialStatus = projectCommercialStatus;
-        this.projectPurposes = projectPurposes;
-        this.projectMusicalGendersPreDefined = projectMusicalGendersPreDefined;
-        this.createdDate = createdDate;
-        this.updateDate = updateDate;
-        this.compositionsTotal = compositionsTotal;
-    }
-
 
     public Long getId() {
         return id;
     }
-
     public void setId(Long id) {
         this.id = id;
     }
@@ -56,7 +39,6 @@ public class ProjectViewDto {
     public String getTitle() {
         return title;
     }
-
     public void setTitle(String title) {
         this.title = title;
     }
@@ -64,7 +46,6 @@ public class ProjectViewDto {
     public String getDescription() {
         return description;
     }
-
     public void setDescription(String description) {
         this.description = description;
     }
@@ -72,7 +53,6 @@ public class ProjectViewDto {
     public String getIllustration() {
         return illustration;
     }
-
     public void setIllustration(String illustration) {
         this.illustration = illustration;
     }
@@ -80,7 +60,6 @@ public class ProjectViewDto {
     public ProjectStatus getProjectStatus() {
         return projectStatus;
     }
-
     public void setProjectStatus(ProjectStatus projectStatus) {
         this.projectStatus = projectStatus;
     }
@@ -88,7 +67,6 @@ public class ProjectViewDto {
     public ProjectType getProjectType() {
         return projectType;
     }
-
     public void setProjectType(ProjectType projectType) {
         this.projectType = projectType;
     }
@@ -96,7 +74,6 @@ public class ProjectViewDto {
     public ProjectCommercialStatus getProjectCommercialStatus() {
         return projectCommercialStatus;
     }
-
     public void setProjectCommercialStatus(ProjectCommercialStatus projectCommercialStatus) {
         this.projectCommercialStatus = projectCommercialStatus;
     }
@@ -104,7 +81,6 @@ public class ProjectViewDto {
     public Set<ProjectPurpose> getProjectPurposes() {
         return projectPurposes;
     }
-
     public void setProjectPurposes(Set<ProjectPurpose> projectPurposes) {
         this.projectPurposes = projectPurposes;
     }
@@ -112,7 +88,6 @@ public class ProjectViewDto {
     public Set<ProjectMusicalGenderPreDefined> getProjectMusicalGendersPreDefined() {
         return projectMusicalGendersPreDefined;
     }
-
     public void setProjectMusicalGendersPreDefined(Set<ProjectMusicalGenderPreDefined> projectMusicalGendersPreDefined) {
         this.projectMusicalGendersPreDefined = projectMusicalGendersPreDefined;
     }
@@ -120,7 +95,6 @@ public class ProjectViewDto {
     public Instant getCreatedDate() {
         return createdDate;
     }
-
     public void setCreatedDate(Instant createdDate) {
         this.createdDate = createdDate;
     }
@@ -128,7 +102,6 @@ public class ProjectViewDto {
     public Instant getUpdateDate() {
         return updateDate;
     }
-
     public void setUpdateDate(Instant updateDate) {
         this.updateDate = updateDate;
     }
@@ -136,7 +109,6 @@ public class ProjectViewDto {
     public Integer getCompositionsTotal() {
         return compositionsTotal;
     }
-
     public void setCompositionsTotal(Integer compositionsTotal) {
         this.compositionsTotal = compositionsTotal;
     }
