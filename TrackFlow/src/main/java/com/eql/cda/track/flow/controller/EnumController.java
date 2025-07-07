@@ -23,7 +23,6 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/enums")
-@CrossOrigin(origins = "http://localhost:3000")
 public class EnumController {
 
     private <T extends Enum<T>> List<EnumDto> enumToDtoList(Class<T> enumClass) {

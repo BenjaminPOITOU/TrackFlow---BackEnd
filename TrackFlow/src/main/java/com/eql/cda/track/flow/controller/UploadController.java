@@ -11,7 +11,6 @@ import org.springframework.web.multipart.MultipartFile;
  * Handles file upload requests.
  */
 @RestController
-@CrossOrigin(origins = "http://localhost:3000")
 @RequestMapping("/api/uploads")
 public class UploadController {
 

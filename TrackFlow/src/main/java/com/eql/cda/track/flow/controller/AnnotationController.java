@@ -24,7 +24,6 @@ import java.util.List;
  * REST controller for managing annotations within the API hierarchy.
  */
 @RestController
-@CrossOrigin(origins = "http://localhost:3000")
 @RequestMapping("/api/")
 public class AnnotationController {
 

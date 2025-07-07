@@ -19,7 +19,6 @@ import java.util.Optional;
  * Handles REST requests for versions, nested within a project, composition, and branch context.
  */
 @RestController
-@CrossOrigin(origins = "http://localhost:3000")
 @RequestMapping("/api/projects/{projectId}/compositions/{compositionId}/branches/{branchId}/versions")
 public class VersionController {
 

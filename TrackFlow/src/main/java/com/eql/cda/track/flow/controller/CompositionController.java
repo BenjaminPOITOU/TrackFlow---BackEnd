@@ -22,7 +22,6 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/projects/{projectId}/compositions")
-@CrossOrigin(origins = "http://localhost:3000")
 public class CompositionController {
 
     private final CompositionService compositionService;

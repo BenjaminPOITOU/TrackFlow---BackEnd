@@ -1,6 +1,7 @@
 package com.eql.cda.track.flow.service.implementation;
 
 import com.eql.cda.track.flow.service.StorageService;
+import com.google.cloud.WriteChannel;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.web.multipart.MultipartFile;
@@ -39,14 +40,19 @@ public class GoogleCloudStorageServiceImpl implements StorageService {
         }
 
         BlobId blobId = BlobId.of(bucketName, destinationFileName);
-
-
         BlobInfo blobInfo = BlobInfo.newBuilder(blobId)
                 .setContentType(file.getContentType())
                 .build();
 
-        try (InputStream inputStream = file.getInputStream()) {
-            storage.create(blobInfo, inputStream);
+        try (WriteChannel writer = storage.writer(blobInfo);
+             InputStream input = file.getInputStream()) {
+
+            byte[] buffer = new byte[1024];
+            int limit;
+            while ((limit = input.read(buffer)) >= 0) {
+                writer.write(java.nio.ByteBuffer.wrap(buffer, 0, limit));
+            }
+
         } catch (StorageException e) {
             System.err.println("GCS Upload Error: " + e.getMessage());
             throw new IOException("Failed to upload file to GCS: " + e.getMessage(), e);

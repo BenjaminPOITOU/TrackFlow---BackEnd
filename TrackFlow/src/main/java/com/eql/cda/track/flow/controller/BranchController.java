@@ -26,7 +26,6 @@ import java.util.List;
  * All endpoints are prefixed with {@code /api/projects/{projectId}/compositions/{compositionId}/branches}.
  */
 @RestController
-@CrossOrigin(origins = "http://localhost:3000")
 @RequestMapping("/api/projects/{projectId}/compositions/{compositionId}/branches")
 public class BranchController {
 
